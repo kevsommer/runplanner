@@ -1,14 +1,40 @@
 <template>
-  <div class="min-h-screen surface-ground p-4">
-    <nav class="mb-4 flex gap-3">
-      <RouterLink to="/login">Login</RouterLink>
-      <RouterLink to="/register">Register</RouterLink>
-    </nav>
+  <div class="min-h-screen surface-ground">
+    <Menubar :model="items" class="mb-4">
+      <template #item="{ label, item }">
+        <RouterLink :to="item.route" class="c-link p-2">
+          {{ label }}
+        </RouterLink>
+      </template>
+    </Menubar>
     <RouterView />
   </div>
 </template>
 
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import Menubar from 'primevue/menubar'
+import { RouterLink } from 'vue-router';
+
+const items = [
+  {
+    label: 'Login',
+    icon: 'pi pi-sign-in',
+    route: '/login'
+  },
+  {
+    label: 'Register',
+    icon: 'pi pi-user-plus',
+    route: '/register'
+  }
+]
+</script>
+
+<style scoped>
+.c-link {
+  text-decoration: none;
+  color: var(--p-primary-color);
+}
+</style>
 
 <style>
 /* optional small helpers */
