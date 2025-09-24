@@ -1,71 +1,3 @@
-<script setup lang="ts">
-import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-
-import Card from 'primevue/card'
-import InputText from 'primevue/inputtext'
-import Password from 'primevue/password'
-import Button from 'primevue/button'
-import Message from 'primevue/message'
-import Divider from 'primevue/divider'
-
-const router = useRouter()
-
-const form = reactive({
-  name: '',
-  email: '',
-  password: '',
-  confirm: '',
-})
-
-const loading = ref(false)
-const error = ref<string | null>(null)
-
-function validate() {
-  error.value = null
-  if (!form.name) {
-    error.value = 'Name is required.'
-    return false
-  }
-  if (!form.email || !/.+@.+\..+/.test(form.email)) {
-    error.value = 'Please enter a valid email.'
-    return false
-  }
-  if (!form.password || form.password.length < 8) {
-    error.value = 'Password must be at least 8 characters.'
-    return false
-  }
-  if (form.password !== form.confirm) {
-    error.value = 'Passwords do not match.'
-    return false
-  }
-  return true
-}
-
-async function onSubmit() {
-  if (!validate()) return
-  loading.value = true
-  try {
-    await fetch("http://localhost:8080/api/auth/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: form.email,
-        password: form.password,
-      }),
-    }).then(res => res.json())
-
-    router.push({ name: 'login' })
-  } catch (e) {
-    error.value = 'Registration failed. Please try again.'
-  } finally {
-    loading.value = false
-  }
-}
-</script>
-
 <template>
   <div class="flex justify-content-center">
     <Card class="w-full md:w-6 lg:w-4">
@@ -108,3 +40,64 @@ async function onSubmit() {
     </Card>
   </div>
 </template>
+
+<script setup lang="ts">
+import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
+
+import Card from 'primevue/card'
+import InputText from 'primevue/inputtext'
+import Password from 'primevue/password'
+import Button from 'primevue/button'
+import Message from 'primevue/message'
+import Divider from 'primevue/divider'
+
+const router = useRouter()
+const { register } = useAuth();
+
+const form = reactive({
+  name: '',
+  email: '',
+  password: '',
+  confirm: '',
+})
+
+const loading = ref(false)
+const error = ref<string | null>(null)
+
+function validate() {
+  error.value = null
+  if (!form.name) {
+    error.value = 'Name is required.'
+    return false
+  }
+  if (!form.email || !/.+@.+\..+/.test(form.email)) {
+    error.value = 'Please enter a valid email.'
+    return false
+  }
+  if (!form.password || form.password.length < 8) {
+    error.value = 'Password must be at least 8 characters.'
+    return false
+  }
+  if (form.password !== form.confirm) {
+    error.value = 'Passwords do not match.'
+    return false
+  }
+  return true
+}
+
+async function onSubmit() {
+  if (!validate()) return
+  loading.value = true
+  try {
+    await register(form.email, form.password)
+
+    router.push({ name: 'login' })
+  } catch (e) {
+    error.value = 'Registration failed. Please try again.'
+  } finally {
+    loading.value = false
+  }
+}
+</script>
