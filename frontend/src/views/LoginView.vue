@@ -68,11 +68,18 @@ async function onSubmit() {
   if (!validate()) return
   loading.value = true
   try {
-    // TODO: call your real API here
-    // Example mock:
-    await new Promise((r) => setTimeout(r, 600))
-    localStorage.setItem('token', 'mock-token')
-    router.push({ name: 'dashboard' }) // or wherever
+    await fetch("http://localhost:8080/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: form.email,
+        password: form.password,
+      }),
+    }).then(res => res.json())
+
+    router.push({ name: 'dashboard' })
   } catch (e) {
     error.value = 'Login failed. Please try again.'
   } finally {

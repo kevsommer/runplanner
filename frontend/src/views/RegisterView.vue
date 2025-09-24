@@ -46,9 +46,17 @@ async function onSubmit() {
   if (!validate()) return
   loading.value = true
   try {
-    // TODO: call your real API here
-    await new Promise((r) => setTimeout(r, 700))
-    // After successful registration, you might auto-login or redirect to login:
+    await fetch("http://localhost:8080/api/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: form.email,
+        password: form.password,
+      }),
+    }).then(res => res.json())
+
     router.push({ name: 'login' })
   } catch (e) {
     error.value = 'Registration failed. Please try again.'

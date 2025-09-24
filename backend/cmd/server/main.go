@@ -4,7 +4,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
@@ -23,6 +25,15 @@ func main() {
 	authSvc := service.NewAuthService(userStore)
 
 	r := gin.Default()
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173", "http://127.0.0.1:5173"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true, // set to false if you are NOT using cookies/auth
+		MaxAge:           12 * time.Hour,
+	}))
 
 	// Sessions middleware
 	storeCookie := cookie.NewStore([]byte(sessionSecret))
