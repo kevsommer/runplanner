@@ -42,62 +42,62 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuth } from '@/composables/useAuth'
+import { reactive, ref } from "vue";
+import { useRouter } from "vue-router";
+import { useAuth } from "@/composables/useAuth";
 
-import Card from 'primevue/card'
-import InputText from 'primevue/inputtext'
-import Password from 'primevue/password'
-import Button from 'primevue/button'
-import Message from 'primevue/message'
-import Divider from 'primevue/divider'
+import Card from "primevue/card";
+import InputText from "primevue/inputtext";
+import Password from "primevue/password";
+import Button from "primevue/button";
+import Message from "primevue/message";
+import Divider from "primevue/divider";
 
-const router = useRouter()
+const router = useRouter();
 const { register } = useAuth();
 
 const form = reactive({
-  name: '',
-  email: '',
-  password: '',
-  confirm: '',
-})
+  name: "",
+  email: "",
+  password: "",
+  confirm: "",
+});
 
-const loading = ref(false)
-const error = ref<string | null>(null)
+const loading = ref(false);
+const error = ref<string | null>(null);
 
 function validate() {
-  error.value = null
+  error.value = null;
   if (!form.name) {
-    error.value = 'Name is required.'
-    return false
+    error.value = "Name is required.";
+    return false;
   }
   if (!form.email || !/.+@.+\..+/.test(form.email)) {
-    error.value = 'Please enter a valid email.'
-    return false
+    error.value = "Please enter a valid email.";
+    return false;
   }
   if (!form.password || form.password.length < 8) {
-    error.value = 'Password must be at least 8 characters.'
-    return false
+    error.value = "Password must be at least 8 characters.";
+    return false;
   }
   if (form.password !== form.confirm) {
-    error.value = 'Passwords do not match.'
-    return false
+    error.value = "Passwords do not match.";
+    return false;
   }
-  return true
+  return true;
 }
 
 async function onSubmit() {
-  if (!validate()) return
-  loading.value = true
+  if (!validate()) return;
+  loading.value = true;
   try {
-    await register(form.email, form.password)
+    await register(form.email, form.password);
 
-    router.push({ name: 'login' })
+    router.push({ name: "login" });
   } catch (e) {
-    error.value = 'Registration failed. Please try again.'
+    error.value = "Registration failed. Please try again.";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 </script>

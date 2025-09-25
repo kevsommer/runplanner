@@ -1,13 +1,15 @@
 import LoginView from '@/views/LoginView.vue'
+import LogoutView from '@/views/LogoutView.vue'
 import RegisterView from '@/views/RegisterView.vue'
 import { api } from '@/api'
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 
 const routes: RouteRecordRaw[] = [
-  { path: '/', redirect: '/login' },
+  { path: '/', name: 'home', redirect: { name: 'dashboard' }, meta: { requiresAuth: true } },
   { path: '/login', name: 'login', component: LoginView, meta: { public: true } },
   { path: '/register', name: 'register', component: RegisterView, meta: { public: true } },
+  { path: '/logout', name: 'logout', component: LogoutView, meta: { public: true } },
   { path: '/dashboard', name: 'dashboard', component: () => import('@/views/DashboardView.vue'), meta: { requiresAuth: true } },
 ]
 

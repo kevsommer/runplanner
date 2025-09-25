@@ -31,8 +31,7 @@ async function register(email: string, password: string) {
 
 
 async function logout() {
-  await api.post('/auth/logout')
-  user.value = null
+  return api.post('/auth/logout').then(() => user.value = null)
 }
 
 
