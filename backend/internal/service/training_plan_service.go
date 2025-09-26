@@ -42,6 +42,14 @@ func (s *TrainingPlanService) Create(userId string, goal string, startDate time.
 	return tp, nil
 }
 
+func (s *TrainingPlanService) GetPlansForUser(userId string) ([]*model.TrainingPlan, error) {
+	return s.plans.GetTrainingPlansForUser(userId)
+}
+
+func (s *TrainingPlanService) GetPlanByID(planID string) (*model.TrainingPlan, error) {
+	return s.plans.GetTrainingPlanByID(planID)
+}
+
 func calculateEndDate(startDate time.Time, numberOfWeeks int) time.Time {
 	return startDate.AddDate(0, 0, numberOfWeeks*7)
 }

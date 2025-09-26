@@ -18,6 +18,8 @@ func RegisterTrainingPlanRoutes(rg *gin.RouterGroup, svc *service.TrainingPlanSe
 	auth := rg.Group("/plans")
 	{
 		auth.POST("/", ac.postCreate)
+		auth.GET("/", ac.getAllForUser)
+		auth.GET("/:id", ac.getByID)
 	}
 }
 
@@ -44,4 +46,38 @@ func (a *TrainingPlanController) postCreate(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"plan": tp})
+}
+
+func (a *TrainingPlanController) getAllForUser(c *gin.Context) {
+	uid := currentUserID(c)
+
+	plans, err := a.svc.GetPlansForUser(uid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"plans": plans})
+}
+
+func (a *TrainingPlanController) getByID(c *gin.Context) {
+	planID := c.Param("id")
+
+	tp, err := a.svc.GetPlanByID(planID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if tp == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "plan not found"})
+		return
+	}
+
+	uid := currentUserID(c)
+	if tp.UserID != uid {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"plan": tp})
 }

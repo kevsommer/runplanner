@@ -40,7 +40,7 @@ func (s *TrainingPlanStore) CreateTrainingPlan(plan *model.TrainingPlan) (*model
 	return plan, nil
 }
 
-func (s *TrainingPlanStore) GetTrainingPlansForUser(userID model.UserID) ([]*model.TrainingPlan, error) {
+func (s *TrainingPlanStore) GetTrainingPlansForUser(userID string) ([]*model.TrainingPlan, error) {
 	query := `
 		SELECT id, goal, start_date, end_date, activities_per_week, name, created_at
 		FROM training_plans
@@ -79,7 +79,7 @@ func (s *TrainingPlanStore) GetTrainingPlansForUser(userID model.UserID) ([]*mod
 }
 
 func (s *TrainingPlanStore) GetTrainingPlanByID(planID string) (*model.TrainingPlan, error) {
-	query := `SELECT id, goal, start_date, end_date, activities_per_week, name, created_at
+	query := `SELECT id, user_id, goal, start_date, end_date, activities_per_week, name, created_at
 			  FROM training_plans WHERE id = ?`
 
 	row := s.db.QueryRow(query, planID)
@@ -87,6 +87,7 @@ func (s *TrainingPlanStore) GetTrainingPlanByID(planID string) (*model.TrainingP
 	var plan model.TrainingPlan
 	err := row.Scan(
 		&plan.ID,
+		&plan.UserID,
 		&plan.Goal,
 		&plan.StartDate,
 		&plan.EndDate,
