@@ -29,6 +29,9 @@ func main() {
 	var userStore interface {
 		store.UserStore // satisfied by both mem & sqlite impls via store.UserStore
 	}
+	var trainingPlanStore interface {
+		store.TrainingPlanStore
+	}
 	if dbURL == "" {
 		userStore = mem.NewMemUserStore()
 	} else {
@@ -40,9 +43,11 @@ func main() {
 			log.Fatalf("migrations: %v", err)
 		}
 		userStore = sqliteStore.NewUserStore(db)
+		trainingPlanStore = sqliteStore.NewTrainingPlanStore(db)
 	}
 
 	authSvc := service.NewAuthService(userStore)
+	trainingPlanSvc := service.NewTrainingPlanService(trainingPlanStore)
 
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
@@ -69,6 +74,7 @@ func main() {
 	// API routes
 	api := r.Group("/api")
 	controller.RegisterAuthRoutes(api, authSvc)
+	controller.RegisterTrainingPlanRoutes(api, trainingPlanSvc)
 
 	log.Printf("listening on :%s", port)
 	if err := r.Run(":" + port); err != nil {
