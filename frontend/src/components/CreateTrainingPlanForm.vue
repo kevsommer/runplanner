@@ -62,6 +62,7 @@ import SelectButton from "primevue/selectbutton";
 import Card from "primevue/card";
 import InputNumber from "primevue/inputnumber";
 import Message from "primevue/message";
+import { api } from "@/api";
 
 const form = reactive({
   name: "",
@@ -75,6 +76,14 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 
 function onSubmit() {
+  api
+    .post("/plans/", form)
+    .catch(() => {
+      error.value = "Failed to create training plan. Please try again.";
+    })
+    .finally(() => {
+      loading.value = false;
+    });
   return;
 }
 </script>
