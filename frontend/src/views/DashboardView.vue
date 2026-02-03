@@ -3,7 +3,13 @@
     <CreateTrainingPlanForm v-if="formVisible" />
     <div v-else>
       <Button label="Create Training Plan" class="mb-4" @click="formVisible = true" />
-      <div v-for="plan in plans" :key="plan.id" class="p-4 mb-4 border-1 border-400 border-round">
+      <div
+        v-for="plan in plans"
+        :key="plan.id"
+        class="p-4 mb-4 border-1 border-400 border-round"
+        @click="router.push(`/plans/${plan.id}`)"
+        style="cursor: pointer"
+      >
         <h2 class="text-2xl font-bold mb-2">{{ plan.name }}</h2>
         <p class="mb-1"><strong>Race Date:</strong> {{ formattedDate(plan.endDate) }}</p>
         <p class="mb-1"><strong>Weeks</strong> {{ plan.weeks }}</p>
@@ -17,6 +23,9 @@ import { api } from "@/api";
 import CreateTrainingPlanForm from "@/components/CreateTrainingPlanForm.vue";
 import Button from "primevue/button";
 import { ref } from "vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
 
 const formVisible = ref(false);
 
