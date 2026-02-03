@@ -26,11 +26,11 @@ func main() {
 	dbURL := getenv("DATABASE_URL", "") // e.g. file:data/runplanner.db?_pragma=busy_timeout(5000)&cache=shared
 
 	// Choose store (SQLite if DATABASE_URL provided; else in-memory)
-	var userStore interface {
-		store.UserStore // satisfied by both mem & sqlite impls via store.UserStore
-	}
+	var userStore store.UserStore
+	var trainingPlanStore store.TrainingPlanStore
 	if dbURL == "" {
 		userStore = mem.NewMemUserStore()
+		trainingPlanStore = mem.NewMemTrainingPlanStore()
 	} else {
 		db, err := sqliteStore.Open(dbURL) // uses modernc.org/sqlite
 		if err != nil {
@@ -40,9 +40,11 @@ func main() {
 			log.Fatalf("migrations: %v", err)
 		}
 		userStore = sqliteStore.NewUserStore(db)
+		trainingPlanStore = sqliteStore.NewTrainingPlanStore(db)
 	}
 
 	authSvc := service.NewAuthService(userStore)
+	trainingPlanSvc := service.NewTrainingPlanService(trainingPlanStore)
 
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
