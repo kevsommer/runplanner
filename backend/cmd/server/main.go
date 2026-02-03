@@ -71,6 +71,7 @@ func main() {
 	// API routes
 	api := r.Group("/api")
 	controller.RegisterAuthRoutes(api, authSvc)
+	controller.RegisterTrainingPlanRoutes(api, trainingPlanSvc)
 
 	log.Printf("listening on :%s", port)
 	if err := r.Run(":" + port); err != nil {
