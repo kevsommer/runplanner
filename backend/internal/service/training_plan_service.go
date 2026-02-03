@@ -61,6 +61,10 @@ func (s *TrainingPlanService) GetByID(id model.TrainingPlanID) (*model.TrainingP
 	return s.plans.GetByID(id)
 }
 
+func (s *TrainingPlanService) GetByUserID(userID model.UserID) ([]*model.TrainingPlan, error) {
+	return s.plans.GetByUserID(userID)
+}
+
 func newPlanID() string {
 	b := make([]byte, 16)
 	_, _ = rand.Read(b)

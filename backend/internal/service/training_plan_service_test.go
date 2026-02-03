@@ -90,3 +90,18 @@ func TestTrainingPlanService_GetByID(t *testing.T) {
 	})
 }
 
+func TestTrainingPlanService_GetByUserID(t *testing.T) {
+	svc := setupTrainingPlanTest(t)
+	userID := model.UserID("user-2")
+	created1, err := svc.Create(userID, "Test Plan 1", time.Date(2025, 5, 1, 0, 0, 0, 0, time.UTC), 8)
+	created2, err := svc.Create(userID, "Test Plan 2", time.Date(2025, 5, 1, 0, 0, 0, 0, time.UTC), 8)
+	require.NoError(t, err)
+
+	t.Run("returns plan by id", func(t *testing.T) {
+		plan, err := svc.GetByUserID(userID)
+		require.NoError(t, err)
+		assert.Len(t, plan, 2)
+		assert.Equal(t, created1.ID, plan[0].ID)
+		assert.Equal(t, created2.ID, plan[1].ID)
+	})
+}

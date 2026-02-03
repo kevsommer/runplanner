@@ -35,6 +35,26 @@ func (s *TrainingPlanStore) GetByID(id model.TrainingPlanID) (*model.TrainingPla
 	return scanTrainingPlan(row)
 }
 
+func (s *TrainingPlanStore) GetByUserID(userID model.UserID) ([]*model.TrainingPlan, error) {
+	rows, err := s.db.Query(
+		`SELECT id, user_id, name, end_date, weeks, start_date, created_at FROM training_plans WHERE user_id = ? ORDER BY end_date ASC`,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var plans []*model.TrainingPlan
+	for rows.Next() {
+		plan, err := scanTrainingPlanFromRows(rows)
+		if err != nil {
+			return nil, err
+		}
+		plans = append(plans, plan)
+	}
+	return plans, rows.Err()
+}
+
 func scanTrainingPlan(row *sql.Row) (*model.TrainingPlan, error) {
 	var id, uid, name, endDateStr, startDateStr string
 	var weeks int
@@ -43,6 +63,26 @@ func scanTrainingPlan(row *sql.Row) (*model.TrainingPlan, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
+		return nil, err
+	}
+	endDate, _ := time.Parse(dateFormat, endDateStr)
+	startDate, _ := time.Parse(dateFormat, startDateStr)
+	return &model.TrainingPlan{
+		ID:        model.TrainingPlanID(id),
+		UserID:    model.UserID(uid),
+		Name:      name,
+		EndDate:   endDate,
+		Weeks:     weeks,
+		StartDate: startDate,
+		CreatedAt: createdAt,
+	}, nil
+}
+
+func scanTrainingPlanFromRows(rows *sql.Rows) (*model.TrainingPlan, error) {
+	var id, uid, name, endDateStr, startDateStr string
+	var weeks int
+	var createdAt time.Time
+	if err := rows.Scan(&id, &uid, &name, &endDateStr, &weeks, &startDateStr, &createdAt); err != nil {
 		return nil, err
 	}
 	endDate, _ := time.Parse(dateFormat, endDateStr)

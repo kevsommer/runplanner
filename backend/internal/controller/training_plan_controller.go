@@ -29,6 +29,7 @@ func RegisterTrainingPlanRoutes(rg *gin.RouterGroup, svc *service.TrainingPlanSe
 	plans.Use(requireAuth)
 	{
 		plans.POST("/", tc.postCreate)
+		plans.GET("/", tc.getByUserID)
 		plans.GET("/:id", tc.getByID)
 	}
 }
@@ -84,4 +85,14 @@ func (t *TrainingPlanController) getByID(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"plan": plan})
+}
+
+func (t *TrainingPlanController) getByUserID(c *gin.Context) {
+	uid := currentUserID(c)
+	plans, err := t.svc.GetByUserID(model.UserID(uid))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"plans": plans})
 }

@@ -12,39 +12,13 @@
         </div>
 
         <div class="flex flex-column gap-2">
-          <label for="goal">Goal</label>
-          <SelectButton
-            id="goal"
-            v-model="form.goal"
-            :options="['MARATHON', 'HALF', '10K', '5K']"
-          />
+          <label for="endDate">End Date</label>
+          <DatePicker id="endDate" v-model="form.endDate" dateFormat="yy-mm-dd" showIcon />
         </div>
 
         <div class="flex flex-column gap-2">
-          <label for="start_date">Start Date</label>
-          <DatePicker id="start_date" v-model="form.start_date" dateFormat="yy-mm-dd" showIcon />
-        </div>
-
-        <div class="flex flex-column gap-2">
-          <label for="number_of_weeks">Number of Weeks</label>
-          <InputNumber
-            id="number_of_weeks"
-            v-model="form.number_of_weeks"
-            show-buttons
-            :min="1"
-            :max="30"
-          />
-        </div>
-
-        <div class="flex flex-column gap-2">
-          <label for="activities_per_week">Activities Per Week</label>
-          <InputNumber
-            id="activities_per_week"
-            v-model="form.activities_per_week"
-            show-buttons
-            :min="1"
-            :max="7"
-          />
+          <label for="weeks">Number of Weeks</label>
+          <InputNumber id="weeks" v-model="form.weeks" show-buttons :min="1" :max="30" />
         </div>
 
         <Button type="submit" :loading="loading" label="Submit" />
@@ -66,18 +40,27 @@ import { api } from "@/api";
 
 const form = reactive({
   name: "",
-  goal: "MARATHON",
-  start_date: new Date(),
-  number_of_weeks: 10,
-  activities_per_week: 4,
+  endDate: new Date(),
+  weeks: 10,
 });
 
 const loading = ref(false);
 const error = ref<string | null>(null);
 
+function formatDateToYYYYMMDD(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function onSubmit() {
+  const payload = {
+    ...form,
+    endDate: formatDateToYYYYMMDD(form.endDate),
+  };
   api
-    .post("/plans/", form)
+    .post("/plans/", payload)
     .catch(() => {
       error.value = "Failed to create training plan. Please try again.";
     })

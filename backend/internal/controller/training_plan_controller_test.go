@@ -151,3 +151,41 @@ func TestTrainingPlanController_GetByID(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
 }
+
+func TestTrainingPlanController_GetByUserID(t *testing.T) {
+	r, authSvc, planSvc := setupPlansTestRouter(t)
+	u, _ := authSvc.Register("get@example.com", "password123")
+	_, _ = planSvc.Create(u.ID, "My Plan1", mustParseDate("2025-05-01"), 8)
+	_, _ = planSvc.Create(u.ID, "My Plan2", mustParseDate("2025-05-01"), 8)
+
+	body := map[string]string{"email": "get@example.com", "password": "password123"}
+	bodyBytes, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	cookies := w.Result().Cookies()
+
+	t.Run("returns plans for authenticated user", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/plans/", nil)
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		plans, ok := resp["plans"].([]interface{})
+		require.True(t, ok)
+		assert.Len(t, plans, 2)
+		names := make([]string, len(plans))
+		for i, p := range plans {
+			names[i] = p.(map[string]interface{})["name"].(string)
+		}
+		assert.Contains(t, names, "My Plan1")
+		assert.Contains(t, names, "My Plan2")
+	})
+}
