@@ -23,7 +23,7 @@ import (
 func main() {
 	port := getenv("PORT", "8080")
 	sessionSecret := getenv("SESSION_SECRET", "dev-secret-change-me")
-	dbURL := getenv("DATABASE_URL", "") // e.g. file:data/runplanner.db?_pragma=busy_timeout(5000)&cache=shared
+	dbURL := getenv("DATABASE_URL", "file:data/runplanner.db?_pragma=busy_timeout(5000)&cache=shared")
 
 	// Choose store (SQLite if DATABASE_URL provided; else in-memory)
 	var userStore store.UserStore
@@ -80,8 +80,10 @@ func main() {
 }
 
 func runMigrations(db *sql.DB) error {
+	if err := goose.SetDialect("sqlite3"); err != nil {
+		return err
+	}
 	// Reads migrations from the filesystem at ./db/migrations
-	// Example migration file: db/migrations/0001_create_users.sql
 	return goose.Up(db, "db/migrations")
 }
 
