@@ -17,7 +17,7 @@ func setupWorkoutTest(t *testing.T) *WorkoutService {
 
 func TestWorkoutService_Create(t *testing.T) {
 	svc := setupWorkoutTest(t)
-	planID := model.TrainingPlanID("plan-1")
+	planID := model.TrainingPlanID("random-plan-id")
 
 	t.Run("creates workout", func(t *testing.T) {
 		day := time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC)
@@ -33,6 +33,15 @@ func TestWorkoutService_Create(t *testing.T) {
 		assert.Equal(t, false, workout.Done)
 		assert.Equal(t, "5km easy run", workout.Description)
 		assert.Equal(t, "", workout.Notes)
+	})
+
+	t.Run("creates workout with empty description", func(t *testing.T) {
+		day := time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC)
+		workout, err := svc.Create(planID, "easy_run", day, "", 5.0)
+
+		require.NoError(t, err)
+		require.NotNil(t, workout)
+		assert.Equal(t, "", workout.Description)
 	})
 
 	t.Run("invalid run type returns ErrInvalidRunType", func(t *testing.T) {

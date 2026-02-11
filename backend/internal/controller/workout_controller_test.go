@@ -86,6 +86,35 @@ func TestWorkoutController_Create(t *testing.T) {
 		assert.Equal(t, "5km easy run", workout["description"])
 	})
 
+	t.Run("creates workout with empty description when authenticated", func(t *testing.T) {
+		body := map[string]interface{}{
+			"planId":      string(plan.ID),
+			"runType":     "easy_run",
+			"day":         "2025-06-01",
+			"description": "",
+			"distance":    5.0,
+		}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/api/workouts/", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusCreated, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		workout, ok := resp["workout"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, string(plan.ID), workout["planId"])
+		assert.Equal(t, "easy_run", workout["runType"])
+		assert.Equal(t, 5.0, workout["distance"])
+		assert.Equal(t, "", workout["description"])
+	})
+
 	t.Run("unauthenticated returns 401", func(t *testing.T) {
 		body := map[string]interface{}{
 			"planId":      string(plan.ID),

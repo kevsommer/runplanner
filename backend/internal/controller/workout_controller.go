@@ -42,7 +42,7 @@ type createWorkoutInput struct {
 	PlanID      string  `json:"planId" binding:"required"`
 	RunType     string  `json:"runType" binding:"required"`
 	Day         string  `json:"day" binding:"required"` // ISO date YYYY-MM-DD
-	Description string  `json:"description" binding:"required"`
+	Description string  `json:"description"`
 	Distance    float64 `json:"distance" binding:"required"`
 }
 
