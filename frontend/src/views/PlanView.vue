@@ -22,6 +22,7 @@
               :workouts="day.workouts"
               :plan-id="String(planId)"
               @workout-created="fetchWorkouts"
+              @workout-updated="fetchWorkouts"
             />
           </div>
         </AccordionTab>

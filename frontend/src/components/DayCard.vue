@@ -16,7 +16,7 @@
     </div>
 
     <div v-if="workouts.length > 0" class="flex flex-column gap-2">
-      <WorkoutCard v-for="workout in workouts" :key="workout.id" :workout="workout" />
+      <WorkoutCard v-for="workout in workouts" :key="workout.id" :workout="workout" @updated="emit('workoutUpdated')" />
     </div>
     <p v-else class="text-color-secondary text-sm mb-0">Rest day</p>
 
@@ -47,6 +47,7 @@ defineProps<{
 
 const emit = defineEmits<{
   (e: "workoutCreated"): void;
+  (e: "workoutUpdated"): void;
 }>();
 
 const showForm = ref(false);
