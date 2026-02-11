@@ -33,7 +33,7 @@ func (s *WorkoutStore) GetByID(id model.WorkoutID) (*model.Workout, error) {
 	return scanWorkout(row)
 }
 
-func (s *TrainingPlanStore) GetByPlanID(planID model.TrainingPlanID) ([]*model.TrainingPlan, error) {
+func (s *WorkoutStore) GetByPlanID(planID model.TrainingPlanID) ([]*model.Workout, error) {
 	rows, err := s.db.Query(
 		`SELECT id, plan_id, runType, day, description, notes, done, distance FROM workouts WHERE plan_id = ?`,
 		planID,
@@ -42,9 +42,9 @@ func (s *TrainingPlanStore) GetByPlanID(planID model.TrainingPlanID) ([]*model.T
 		return nil, err
 	}
 	defer rows.Close()
-	var workouts []*model.TrainingPlan
+	var workouts []*model.Workout
 	for rows.Next() {
-		workout, err := scanTrainingPlanFromRows(rows)
+		workout, err := scanWorkoutFromRows(rows)
 		if err != nil {
 			return nil, err
 		}

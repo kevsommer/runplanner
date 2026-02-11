@@ -28,9 +28,11 @@ func main() {
 	// Choose store (SQLite if DATABASE_URL provided; else in-memory)
 	var userStore store.UserStore
 	var trainingPlanStore store.TrainingPlanStore
+	var workoutStore store.WorkoutStore
 	if dbURL == "" {
 		userStore = mem.NewMemUserStore()
 		trainingPlanStore = mem.NewMemTrainingPlanStore()
+		workoutStore = mem.NewMemWorkoutStore()
 	} else {
 		db, err := sqliteStore.Open(dbURL) // uses modernc.org/sqlite
 		if err != nil {
@@ -41,10 +43,12 @@ func main() {
 		}
 		userStore = sqliteStore.NewUserStore(db)
 		trainingPlanStore = sqliteStore.NewTrainingPlanStore(db)
+		workoutStore = sqliteStore.NewWorkoutStore(db)
 	}
 
 	authSvc := service.NewAuthService(userStore)
 	trainingPlanSvc := service.NewTrainingPlanService(trainingPlanStore)
+	workoutSvc := service.NewWorkoutService(workoutStore)
 
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
@@ -72,6 +76,7 @@ func main() {
 	api := r.Group("/api")
 	controller.RegisterAuthRoutes(api, authSvc)
 	controller.RegisterTrainingPlanRoutes(api, trainingPlanSvc)
+	controller.RegisterWorkoutRoutes(api, workoutSvc, trainingPlanSvc)
 
 	log.Printf("listening on :%s", port)
 	if err := r.Run(":" + port); err != nil {
