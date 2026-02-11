@@ -13,16 +13,22 @@
           {{ workout.distance }} km
         </span>
       </div>
-      <i
-        class="pi cursor-pointer"
-        :class="
-          workout.done
-            ? 'pi-check-circle text-green-500'
-            : 'pi-circle text-color-secondary'
-        "
-        :style="{ opacity: loading ? 0.5 : 1 }"
-        @click="toggleDone"
-      />
+      <div class="flex align-items-center gap-2">
+        <i
+          class="pi pi-pencil cursor-pointer text-color-secondary"
+          @click="emit('edit')"
+        />
+        <i
+          class="pi cursor-pointer"
+          :class="
+            workout.done
+              ? 'pi-check-circle text-green-500'
+              : 'pi-circle text-color-secondary'
+          "
+          :style="{ opacity: loading ? 0.5 : 1 }"
+          @click="toggleDone"
+        />
+      </div>
     </div>
     <p
       v-if="workout.description"
@@ -56,6 +62,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "updated"): void;
+  (e: "edit"): void;
 }>();
 
 const loading = ref(false);

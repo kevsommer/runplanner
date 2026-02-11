@@ -1,20 +1,15 @@
 <template>
-  <Card class="w-full md:w-6 lg:w-4">
-    <template #title>Add workout</template>
+  <Card class="w-full">
+    <template #title>Edit workout</template>
 
     <template #content>
       <form @submit.prevent="onSubmit" class="flex flex-column gap-3">
         <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
 
-        <div v-if="!initialDate" class="flex flex-column gap-2">
-          <label for="day">Day</label>
-          <DatePicker id="day" v-model="form.day" dateFormat="yy-mm-dd" showIcon />
-        </div>
-
         <WorkoutFormFields :form="form" />
 
         <div class="flex gap-2">
-          <Button type="submit" :loading label="Create workout" />
+          <Button type="submit" :loading="loading" label="Save" />
           <Button type="button" label="Cancel" severity="secondary" text @click="emit('cancel')" />
         </div>
       </form>
@@ -24,53 +19,46 @@
 
 <script setup lang="ts">
 import { reactive, ref } from "vue";
-import DatePicker from "primevue/datepicker";
 import Button from "primevue/button";
 import Card from "primevue/card";
 import Message from "primevue/message";
 import WorkoutFormFields from "@/components/WorkoutFormFields.vue";
 import { api } from "@/api";
-import { formatDateToYYYYMMDD } from "@/utils";
+import type { Workout } from "@/components/WorkoutCard.vue";
 
 const props = defineProps<{
-  planId: string;
-  initialDate?: string;
+  workout: Workout;
 }>();
 
 const emit = defineEmits<{
-  (e: "created"): void;
+  (e: "updated"): void;
   (e: "cancel"): void;
 }>();
 
 const form = reactive({
-  day: props.initialDate ? new Date(props.initialDate + "T00:00:00") : new Date(),
-  runType: "easy_run",
-  description: "",
-  distance: 5,
+  runType: props.workout.runType,
+  description: props.workout.description,
+  distance: props.workout.distance,
 });
 
 const loading = ref(false);
 const error = ref<string | null>(null);
 
 function onSubmit() {
-  const payload = {
-    planId: props.planId,
-    runType: form.runType,
-    day: formatDateToYYYYMMDD(form.day),
-    description: form.description,
-    distance: form.distance,
-  };
-
   loading.value = true;
   error.value = null;
 
   api
-    .post("/workouts/", payload)
+    .put(`/workouts/${props.workout.id}`, {
+      runType: form.runType,
+      description: form.description,
+      distance: form.distance,
+    })
     .then(() => {
-      emit("created");
+      emit("updated");
     })
     .catch(() => {
-      error.value = "Failed to create workout. Please try again.";
+      error.value = "Failed to update workout. Please try again.";
     })
     .finally(() => {
       loading.value = false;

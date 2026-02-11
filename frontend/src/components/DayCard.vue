@@ -16,7 +16,20 @@
     </div>
 
     <div v-if="workouts.length > 0" class="flex flex-column gap-2">
-      <WorkoutCard v-for="workout in workouts" :key="workout.id" :workout="workout" @updated="emit('workoutUpdated')" />
+      <template v-for="workout in workouts" :key="workout.id">
+        <EditWorkoutForm
+          v-if="editingWorkoutId === workout.id"
+          :workout="workout"
+          @updated="handleWorkoutUpdated"
+          @cancel="editingWorkoutId = null"
+        />
+        <WorkoutCard
+          v-else
+          :workout="workout"
+          @updated="emit('workoutUpdated')"
+          @edit="editingWorkoutId = workout.id"
+        />
+      </template>
     </div>
     <p v-else class="text-color-secondary text-sm mb-0">Rest day</p>
 
@@ -35,6 +48,7 @@
 import { ref } from "vue";
 import Button from "primevue/button";
 import CreateWorkoutForm from "@/components/CreateWorkoutForm.vue";
+import EditWorkoutForm from "@/components/EditWorkoutForm.vue";
 import WorkoutCard, { type Workout } from "@/components/WorkoutCard.vue";
 import { formatDate } from "@/utils";
 
@@ -51,9 +65,15 @@ const emit = defineEmits<{
 }>();
 
 const showForm = ref(false);
+const editingWorkoutId = ref<string | null>(null);
 
 function handleCreated() {
   showForm.value = false;
   emit("workoutCreated");
+}
+
+function handleWorkoutUpdated() {
+  editingWorkoutId.value = null;
+  emit("workoutUpdated");
 }
 </script>
