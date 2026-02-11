@@ -7,8 +7,7 @@ CREATE TABLE IF NOT EXISTS workouts (
   description TEXT NOT NULL,
   notes TEXT NOT NULL DEFAULT '',
   done BOOLEAN NOT NULL DEFAULT 0,
-  distance REAL NOT NULL,
-  created_at TIMESTAMP NOT NULL
+  distance REAL NOT NULL
 );
 
 CREATE INDEX idx_workouts_plan_id ON workouts(plan_id);
