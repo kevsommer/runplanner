@@ -2,6 +2,8 @@
   <div
     class="surface-ground border-round p-2"
     :class="{ 'opacity-60': workout.done }"
+    draggable="true"
+    @dragstart="onDragStart"
   >
     <div class="flex justify-content-between align-items-center">
       <div>
@@ -78,6 +80,11 @@ function toggleDone() {
     .finally(() => {
       loading.value = false;
     });
+}
+
+function onDragStart(event: DragEvent) {
+  event.dataTransfer!.effectAllowed = "move";
+  event.dataTransfer!.setData("workout-id", props.workout.id);
 }
 
 function formatRunType(runType: string): string {

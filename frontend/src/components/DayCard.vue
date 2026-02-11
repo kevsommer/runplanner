@@ -1,5 +1,12 @@
 <template>
-  <div class="border-1 border-round surface-border p-3">
+  <div
+    class="border-1 border-round surface-border p-3"
+    :style="dragOver ? { backgroundColor: 'rgba(255, 255, 255, 0.05)' } : {}"
+    @dragover.prevent="onDragOver"
+    @dragenter.prevent
+    @dragleave="onDragLeave"
+    @drop="onDrop"
+  >
     <div class="flex justify-content-between align-items-center mb-2">
       <div>
         <span class="font-semibold">{{ dayName }}</span>
@@ -51,8 +58,9 @@ import CreateWorkoutForm from "@/components/CreateWorkoutForm.vue";
 import EditWorkoutForm from "@/components/EditWorkoutForm.vue";
 import WorkoutCard, { type Workout } from "@/components/WorkoutCard.vue";
 import { formatDate } from "@/utils";
+import { api } from "@/api";
 
-defineProps<{
+const props = defineProps<{
   dayName: string;
   date: string;
   workouts: Workout[];
@@ -66,6 +74,7 @@ const emit = defineEmits<{
 
 const showForm = ref(false);
 const editingWorkoutId = ref<string | null>(null);
+const dragOver = ref(false);
 
 function handleCreated() {
   showForm.value = false;
@@ -75,5 +84,26 @@ function handleCreated() {
 function handleWorkoutUpdated() {
   editingWorkoutId.value = null;
   emit("workoutUpdated");
+}
+
+function onDragOver(event: DragEvent) {
+  event.dataTransfer!.dropEffect = "move";
+  dragOver.value = true;
+}
+
+function onDragLeave(event: DragEvent) {
+  const target = event.currentTarget as HTMLElement;
+  if (!target.contains(event.relatedTarget as Node)) {
+    dragOver.value = false;
+  }
+}
+
+function onDrop(event: DragEvent) {
+  dragOver.value = false;
+  const workoutId = event.dataTransfer!.getData("workout-id");
+  if (!workoutId) return;
+  api.put(`/workouts/${workoutId}`, { day: props.date }).then(() => {
+    emit("workoutUpdated");
+  });
 }
 </script>
