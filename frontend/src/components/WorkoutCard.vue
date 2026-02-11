@@ -30,6 +30,10 @@
           :style="{ opacity: loading ? 0.5 : 1 }"
           @click="toggleDone"
         />
+
+        <i
+          class="pi cursor-pointer pi-trash text-red-500"
+          @click="deleteWorkout" />
       </div>
     </div>
     <p
@@ -74,6 +78,19 @@ function toggleDone() {
   loading.value = true;
   api
     .put(`/workouts/${props.workout.id}`, { done: !props.workout.done })
+    .then(() => {
+      emit("updated");
+    })
+    .finally(() => {
+      loading.value = false;
+    });
+}
+
+function deleteWorkout() {
+  if (loading.value) return;
+  loading.value = true;
+  api
+    .delete(`/workouts/${props.workout.id}`)
     .then(() => {
       emit("updated");
     })
