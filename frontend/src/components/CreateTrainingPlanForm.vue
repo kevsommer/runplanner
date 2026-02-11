@@ -37,6 +37,7 @@ import Card from "primevue/card";
 import InputNumber from "primevue/inputnumber";
 import Message from "primevue/message";
 import { api } from "@/api";
+import { formatDateToYYYYMMDD } from "@/utils";
 
 const form = reactive({
   name: "",
@@ -46,13 +47,6 @@ const form = reactive({
 
 const loading = ref(false);
 const error = ref<string | null>(null);
-
-function formatDateToYYYYMMDD(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 function onSubmit() {
   const payload = {
