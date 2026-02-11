@@ -56,6 +56,22 @@ func (s *WorkoutService) GetByPlanID(planID model.TrainingPlanID) ([]*model.Work
 	return s.workouts.GetByPlanID(planID)
 }
 
+func (s *WorkoutService) Update(workout *model.Workout) error {
+	if workout.Distance < 0 {
+		return ErrInvalidDistance
+	}
+
+	if workout.RunType != "easy_run" && workout.RunType != "intervals" && workout.RunType != "long_run" && workout.RunType != "tempo_run" {
+		return ErrInvalidRunType
+	}
+
+	return s.workouts.Update(workout)
+}
+
+func (s *WorkoutService) Delete(id model.WorkoutID) error {
+	return s.workouts.Delete(id)
+}
+
 func newWorkoutID() string {
 	b := make([]byte, 16)
 	_, _ = rand.Read(b)

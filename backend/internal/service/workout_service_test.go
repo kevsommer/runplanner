@@ -81,9 +81,10 @@ func TestWorkoutService_GetByPlanID(t *testing.T) {
 	svc := setupWorkoutTest(t)
 	planID := model.TrainingPlanID("plan-1")
 	day := time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC)
-	created1, err := svc.Create(planID, "easy_run", day, "5km easy run", 5.0)
-	created2, err := svc.Create(planID, "tempo_run", day, "6km tempo run", 6.0)
-	require.NoError(t, err)
+	created1, err1 := svc.Create(planID, "easy_run", day, "5km easy run", 5.0)
+	created2, err2 := svc.Create(planID, "tempo_run", day, "6km tempo run", 6.0)
+	require.NoError(t, err1)
+	require.NoError(t, err2)
 
 	t.Run("returns plan by id", func(t *testing.T) {
 		plan, err := svc.GetByPlanID(planID)
@@ -91,5 +92,82 @@ func TestWorkoutService_GetByPlanID(t *testing.T) {
 		assert.Len(t, plan, 2)
 		assert.Equal(t, created1.ID, plan[0].ID)
 		assert.Equal(t, created2.ID, plan[1].ID)
+	})
+}
+
+func TestWorkoutService_Update(t *testing.T) {
+	svc := setupWorkoutTest(t)
+	planID := model.TrainingPlanID("plan-1")
+	day := time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC)
+	created, err := svc.Create(planID, "easy_run", day, "5km easy run", 5.0)
+	require.NoError(t, err)
+
+	t.Run("updates workout", func(t *testing.T) {
+		created.Description = "Updated description"
+		created.Notes = "Some notes"
+		created.Done = true
+		err := svc.Update(created)
+		require.NoError(t, err)
+
+		updated, err := svc.GetByID(created.ID)
+		require.NoError(t, err)
+		assert.Equal(t, "Updated description", updated.Description)
+		assert.Equal(t, "Some notes", updated.Notes)
+		assert.Equal(t, true, updated.Done)
+	})
+
+	t.Run("invalid run type returns ErrInvalidRunType", func(t *testing.T) {
+		created.RunType = "invalid_run_type"
+		err := svc.Update(created)
+		assert.Error(t, err)
+		assert.Equal(t, ErrInvalidRunType, err)
+	})
+
+	t.Run("distance < 0 returns ErrInvalidDistance", func(t *testing.T) {
+		created.RunType = "easy_run"
+		created.Distance = -1.0
+		err := svc.Update(created)
+		assert.Error(t, err)
+		assert.Equal(t, ErrInvalidDistance, err)
+	})
+
+	t.Run("unknown id returns ErrNotFound", func(t *testing.T) {
+		unknown := &model.Workout{
+			ID:          "nonexistent",
+			PlanID:      planID,
+			RunType:     "easy_run",
+			Day:         day,
+			Description: "Nonexistent workout",
+			Notes:       "",
+			Done:        false,
+			Distance:    5.0,
+		}
+		err := svc.Update(unknown)
+		assert.Error(t, err)
+		assert.Equal(t, store.ErrNotFound, err)
+	})
+}
+
+func TestWorkoutService_Delete(t *testing.T) {
+	svc := setupWorkoutTest(t)
+	planID := model.TrainingPlanID("plan-1")
+	day := time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC)
+	created, err := svc.Create(planID, "easy_run", day, "5km easy run", 5.0)
+	require.NoError(t, err)
+
+	t.Run("deletes workout", func(t *testing.T) {
+		err := svc.Delete(created.ID)
+		require.NoError(t, err)
+
+		workout, err := svc.GetByID(created.ID)
+		assert.Error(t, err)
+		assert.Equal(t, store.ErrNotFound, err)
+		assert.Nil(t, workout)
+	})
+
+	t.Run("unknown id returns ErrNotFound", func(t *testing.T) {
+		err := svc.Delete("nonexistent")
+		assert.Error(t, err)
+		assert.Equal(t, store.ErrNotFound, err)
 	})
 }

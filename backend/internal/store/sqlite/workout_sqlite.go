@@ -53,6 +53,19 @@ func (s *WorkoutStore) GetByPlanID(planID model.TrainingPlanID) ([]*model.Workou
 	return workouts, rows.Err()
 }
 
+func (s *WorkoutStore) Update(workout *model.Workout) error {
+	_, err := s.db.Exec(
+		`UPDATE workouts SET runType = ?, day = ?, description = ?, notes = ?, done = ?, distance = ? WHERE id = ?`,
+		workout.RunType, workout.Day.Format(dateFormat), workout.Description, workout.Notes, workout.Done, workout.Distance, workout.ID,
+	)
+	return err
+}
+
+func (s *WorkoutStore) Delete(id model.WorkoutID) error {
+	_, err := s.db.Exec(`DELETE FROM workouts WHERE id = ?`, id)
+	return err
+}
+
 func scanWorkout(row *sql.Row) (*model.Workout, error) {
 	var id, pid, runType, dayStr, description, notes string
 	var distance float64

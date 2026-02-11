@@ -54,3 +54,23 @@ func (s *memWorkoutStore) GetByPlanID(planID model.TrainingPlanID) ([]*model.Wor
 	}
 	return workouts, nil
 }
+
+func (s *memWorkoutStore) Update(workout *model.Workout) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.byID[workout.ID]; !ok {
+		return store.ErrNotFound
+	}
+	s.byID[workout.ID] = workout
+	return nil
+}
+
+func (s *memWorkoutStore) Delete(id model.WorkoutID) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.byID[id]; !ok {
+		return store.ErrNotFound
+	}
+	delete(s.byID, id)
+	return nil
+}
