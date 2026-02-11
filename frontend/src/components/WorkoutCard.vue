@@ -5,7 +5,7 @@
   >
     <div class="flex justify-content-between align-items-center">
       <div>
-        <Tag :value="formatRunType(workout.runType)" class="mr-2" />
+        <Tag :value="formatRunType(workout.runType)" :severity="runTypeSeverity(workout.runType)" class="mr-2" />
         <span
           v-if="workout.distance"
           :class="{ 'line-through': workout.done }"
@@ -75,5 +75,15 @@ function toggleDone() {
 
 function formatRunType(runType: string): string {
   return runType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function runTypeSeverity(runType: string): string | undefined {
+  const severities: Record<string, string> = {
+    easy_run: "success",
+    long_run: "warn",
+    intervals: "danger",
+    tempo_run: "info",
+  };
+  return severities[runType];
 }
 </script>
