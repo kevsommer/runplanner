@@ -24,11 +24,12 @@
 
         <div class="flex flex-column gap-2">
           <label for="description">Description</label>
-          <InputText
+          <Textarea
             id="description"
             v-model="form.description"
-            type="text"
             placeholder="Workout description"
+            rows="5"
+            autoResize
           />
         </div>
 
@@ -55,7 +56,7 @@
 
 <script setup lang="ts">
 import { reactive, ref } from "vue";
-import InputText from "primevue/inputtext";
+import Textarea from "primevue/textarea";
 import DatePicker from "primevue/datepicker";
 import Button from "primevue/button";
 import SelectButton from "primevue/selectbutton";
