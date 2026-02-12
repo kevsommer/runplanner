@@ -11,8 +11,17 @@
         <AccordionTab
           v-for="week in weeks"
           :key="week.number"
-          :header="`Week ${week.number}`"
         >
+          <template #header>
+            <div class="flex align-items-center gap-2 w-full">
+              <span>Week {{ week.number }}</span>
+              <i v-if="week.allDone" class="pi pi-check-circle text-green-500" />
+              <Badge v-if="week.number - 1 === currentWeekIndex" value="Current" severity="info" />
+              <span class="ml-auto text-sm text-color-secondary px-2">
+                {{ week.doneKm.toFixed(0) }} / {{ week.plannedKm.toFixed(0) }} km
+              </span>
+            </div>
+          </template>
           <div class="flex flex-column gap-3">
             <DayCard
               v-for="day in week.days"
@@ -38,6 +47,7 @@ import { type Workout } from "@/components/WorkoutCard.vue";
 import { formatDate, formatDateISO } from "@/utils";
 import Accordion from "primevue/accordion";
 import AccordionTab from "primevue/accordiontab";
+import Badge from "primevue/badge";
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 
@@ -60,6 +70,9 @@ type WeekDay = {
 type Week = {
   number: number;
   days: WeekDay[];
+  plannedKm: number;
+  doneKm: number;
+  allDone: boolean;
 };
 
 const plan = ref<Plan>();
@@ -116,7 +129,13 @@ const weeks = computed<Week[]>(() => {
       });
     }
 
-    result.push({ number: weekNum, days });
+    const weekWorkouts = days.flatMap((d) => d.workouts);
+    const plannedKm = weekWorkouts.reduce((sum, w) => sum + (w.distance || 0), 0);
+    const doneKm = weekWorkouts.filter((w) => w.done).reduce((sum, w) => sum + (w.distance || 0), 0);
+
+    const allDone = weekWorkouts.length > 0 && weekWorkouts.every((w) => w.done);
+
+    result.push({ number: weekNum, days, plannedKm, doneKm, allDone });
   }
 
   return result;

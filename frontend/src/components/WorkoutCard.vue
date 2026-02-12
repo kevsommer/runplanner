@@ -1,8 +1,8 @@
 <template>
   <div
     class="surface-ground border-round p-2"
-    :class="{ 'opacity-60': workout.done }"
-    draggable="true"
+    :class="workout.done ? 'workout-done' : 'cursor-move'"
+    :draggable="!workout.done"
     @dragstart="onDragStart"
   >
     <div class="flex justify-content-between align-items-center">
@@ -21,7 +21,7 @@
           @click="emit('edit')"
         />
         <i
-          class="pi cursor-pointer"
+          class="pi cursor-pointer ml-2"
           :class="
             workout.done
               ? 'pi-check-circle text-green-500'
@@ -30,9 +30,8 @@
           :style="{ opacity: loading ? 0.5 : 1 }"
           @click="toggleDone"
         />
-
         <i
-          class="pi cursor-pointer pi-trash text-red-500"
+          class="pi cursor-pointer pi-trash text-red-500 ml-2"
           @click="deleteWorkout" />
       </div>
     </div>
@@ -40,6 +39,7 @@
       v-if="workout.description"
       class="mt-1 mb-0 text-sm"
       :class="{ 'line-through': workout.done }"
+      style="white-space: pre-line"
     >
       {{ workout.description }}
     </p>
@@ -87,6 +87,7 @@ function toggleDone() {
 }
 
 function deleteWorkout() {
+  if (!confirm("Are you sure you want to delete this workout?")) return;
   if (loading.value) return;
   loading.value = true;
   api
