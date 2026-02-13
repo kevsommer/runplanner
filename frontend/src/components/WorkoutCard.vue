@@ -1,8 +1,8 @@
 <template>
   <div
     class="surface-ground border-round p-2"
-    :class="workout.done ? 'workout-done' : 'cursor-move'"
-    :draggable="!workout.done"
+    :class="workout.status ==='completed' ? 'workout-done' : 'cursor-move'"
+    :draggable="workout.status === 'pending'"
     @dragstart="onDragStart"
   >
     <div class="flex justify-content-between align-items-center">
@@ -10,7 +10,7 @@
         <Tag :value="formatRunType(workout.runType)" :severity="runTypeSeverity(workout.runType)" class="mr-2" />
         <span
           v-if="workout.distance"
-          :class="{ 'line-through': workout.done }"
+          :class="{ 'line-through': workout.status === 'completed' }"
         >
           {{ workout.distance }} km
         </span>
@@ -23,7 +23,7 @@
         <i
           class="pi cursor-pointer ml-2"
           :class="
-            workout.done
+            workout.status === 'completed'
               ? 'pi-check-circle text-green-500'
               : 'pi-circle text-color-secondary'
           "
@@ -38,7 +38,7 @@
     <p
       v-if="workout.description"
       class="mt-1 mb-0 text-sm"
-      :class="{ 'line-through': workout.done }"
+      :class="{ 'line-through': workout.status === 'completed' }"
       style="white-space: pre-line"
     >
       {{ workout.description }}
@@ -58,7 +58,7 @@ export type Workout = {
   day: string;
   description: string;
   notes: string;
-  done: boolean;
+  status: 'completed' | 'pending' | 'skipped';
   distance: number;
 };
 
@@ -76,8 +76,9 @@ const loading = ref(false);
 function toggleDone() {
   if (loading.value) return;
   loading.value = true;
+  const newStatus = props.workout.status === 'pending' ? 'completed' : 'pending';
   api
-    .put(`/workouts/${props.workout.id}`, { done: !props.workout.done })
+    .put(`/workouts/${props.workout.id}`, { status: newStatus})
     .then(() => {
       emit("updated");
     })

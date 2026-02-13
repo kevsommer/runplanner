@@ -11,6 +11,6 @@ type Workout struct {
 	Day         time.Time      `json:"day"`
 	Description string         `json:"description"`
 	Notes       string         `json:"notes"`
-	Done        bool           `json:"done"`
+	Status      string         `json:"status"` // "pending", "completed", "skipped"
 	Distance    float64        `json:"distance"` // in kilometers
 }

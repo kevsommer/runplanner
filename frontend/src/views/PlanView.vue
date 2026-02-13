@@ -131,9 +131,9 @@ const weeks = computed<Week[]>(() => {
 
     const weekWorkouts = days.flatMap((d) => d.workouts);
     const plannedKm = weekWorkouts.reduce((sum, w) => sum + (w.distance || 0), 0);
-    const doneKm = weekWorkouts.filter((w) => w.done).reduce((sum, w) => sum + (w.distance || 0), 0);
+    const doneKm = weekWorkouts.filter((w) => w.status === 'completed').reduce((sum, w) => sum + (w.distance || 0), 0);
 
-    const allDone = weekWorkouts.length > 0 && weekWorkouts.every((w) => w.done);
+    const allDone = weekWorkouts.length > 0 && weekWorkouts.every((w) => w.status === 'completed');
 
     result.push({ number: weekNum, days, plannedKm, doneKm, allDone });
   }

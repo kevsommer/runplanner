@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS workouts (
   day TEXT NOT NULL,
   description TEXT NOT NULL,
   notes TEXT NOT NULL DEFAULT '',
-  done BOOLEAN NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'pending',
   distance REAL NOT NULL
 );
 

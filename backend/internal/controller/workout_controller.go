@@ -217,7 +217,7 @@ type updateWorkoutInput struct {
 	Day         *string  `json:"day"`
 	Description *string  `json:"description"`
 	Notes       *string  `json:"notes"`
-	Done        *bool    `json:"done"`
+	Status      *string  `json:"status"`
 	Distance    *float64 `json:"distance"`
 }
 
@@ -272,8 +272,8 @@ func (w *WorkoutController) update(c *gin.Context) {
 	if req.Notes != nil {
 		workout.Notes = *req.Notes
 	}
-	if req.Done != nil {
-		workout.Done = *req.Done
+	if req.Status != nil {
+		workout.Status = *req.Status
 	}
 	if req.Distance != nil {
 		workout.Distance = *req.Distance
@@ -285,6 +285,8 @@ func (w *WorkoutController) update(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "distance cannot be negative"})
 		case service.ErrInvalidRunType:
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid run type"})
+		case service.ErrInvalidStatus:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid status"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update workout"})
 		}

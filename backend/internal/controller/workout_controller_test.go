@@ -430,7 +430,7 @@ func TestWorkoutController_Update(t *testing.T) {
 		body := map[string]interface{}{
 			"description": "Updated description",
 			"notes":       "Great run",
-			"done":        true,
+			"status":      "completed",
 			"distance":    10.0,
 		}
 		bodyBytes, _ := json.Marshal(body)
@@ -449,7 +449,7 @@ func TestWorkoutController_Update(t *testing.T) {
 		require.True(t, ok)
 		assert.Equal(t, "Updated description", workout["description"])
 		assert.Equal(t, "Great run", workout["notes"])
-		assert.Equal(t, true, workout["done"])
+		assert.Equal(t, "completed", workout["status"])
 		assert.Equal(t, 10.0, workout["distance"])
 	})
 

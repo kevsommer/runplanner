@@ -30,7 +30,7 @@ func TestWorkoutService_Create(t *testing.T) {
 		assert.Equal(t, "easy_run", workout.RunType)
 		assert.Equal(t, day, workout.Day)
 		assert.Equal(t, 5.0, workout.Distance)
-		assert.Equal(t, false, workout.Done)
+		assert.Equal(t, "pending", workout.Status)
 		assert.Equal(t, "5km easy run", workout.Description)
 		assert.Equal(t, "", workout.Notes)
 	})
@@ -88,7 +88,7 @@ func TestWorkoutService_CreateBatch(t *testing.T) {
 			assert.Equal(t, items[i].RunType, w.RunType)
 			assert.Equal(t, items[i].Distance, w.Distance)
 			assert.Equal(t, items[i].Description, w.Description)
-			assert.False(t, w.Done)
+			assert.Equal(t, "pending", w.Status)
 		}
 		assert.Equal(t, time.Date(2025, 3, 10, 0, 0, 0, 0, time.UTC), workouts[0].Day)
 		assert.Equal(t, time.Date(2025, 3, 16, 0, 0, 0, 0, time.UTC), workouts[1].Day)
@@ -245,7 +245,7 @@ func TestWorkoutService_Update(t *testing.T) {
 	t.Run("updates workout", func(t *testing.T) {
 		created.Description = "Updated description"
 		created.Notes = "Some notes"
-		created.Done = true
+		created.Status = "completed"
 		err := svc.Update(created)
 		require.NoError(t, err)
 
@@ -253,7 +253,7 @@ func TestWorkoutService_Update(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "Updated description", updated.Description)
 		assert.Equal(t, "Some notes", updated.Notes)
-		assert.Equal(t, true, updated.Done)
+		assert.Equal(t, "completed", updated.Status)
 	})
 
 	t.Run("invalid run type returns ErrInvalidRunType", func(t *testing.T) {
@@ -279,7 +279,7 @@ func TestWorkoutService_Update(t *testing.T) {
 			Day:         day,
 			Description: "Nonexistent workout",
 			Notes:       "",
-			Done:        false,
+			Status:      "pending",
 			Distance:    5.0,
 		}
 		err := svc.Update(unknown)

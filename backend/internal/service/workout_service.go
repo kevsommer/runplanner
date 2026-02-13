@@ -14,6 +14,7 @@ import (
 var (
 	ErrInvalidDistance = errors.New("distance cannot be negative")
 	ErrInvalidRunType  = errors.New("invalid run type")
+	ErrInvalidStatus   = errors.New("invalid status")
 )
 
 type BatchValidationError struct {
@@ -57,7 +58,7 @@ func (s *WorkoutService) Create(planID model.TrainingPlanID, runType string, day
 		Day:         day,
 		Description: description,
 		Notes:       "",
-		Done:        false,
+		Status:      "pending",
 		Distance:    distance,
 	}
 	if err := s.workouts.Create(workout); err != nil {
@@ -92,6 +93,7 @@ func (s *WorkoutService) CreateBatch(plan *model.TrainingPlan, items []BulkWorko
 			RunType:     item.RunType,
 			Day:         day,
 			Description: item.Description,
+			Status:      "pending",
 			Distance:    item.Distance,
 		})
 	}
@@ -117,6 +119,10 @@ func (s *WorkoutService) Update(workout *model.Workout) error {
 
 	if workout.RunType != "easy_run" && workout.RunType != "intervals" && workout.RunType != "long_run" && workout.RunType != "tempo_run" {
 		return ErrInvalidRunType
+	}
+
+	if workout.Status != "pending" && workout.Status != "completed" && workout.Status != "skipped" {
+		return ErrInvalidStatus
 	}
 
 	return s.workouts.Update(workout)

@@ -19,8 +19,8 @@ func NewWorkoutStore(db *sql.DB) *WorkoutStore {
 
 func (s *WorkoutStore) Create(workout *model.Workout) error {
 	_, err := s.db.Exec(
-		`INSERT INTO workouts (id, plan_id, runType, day, description, notes, done, distance) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		workout.ID, workout.PlanID, workout.RunType, workout.Day.Format(dateFormat), workout.Description, workout.Notes, workout.Done, workout.Distance,
+		`INSERT INTO workouts (id, plan_id, runType, day, description, notes, status, distance) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		workout.ID, workout.PlanID, workout.RunType, workout.Day.Format(dateFormat), workout.Description, workout.Notes, workout.Status, workout.Distance,
 	)
 	return err
 }
@@ -32,8 +32,8 @@ func (s *WorkoutStore) CreateBatch(workouts []*model.Workout) error {
 	}
 	for _, w := range workouts {
 		_, err := tx.Exec(
-			`INSERT INTO workouts (id, plan_id, runType, day, description, notes, done, distance) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			w.ID, w.PlanID, w.RunType, w.Day.Format(dateFormat), w.Description, w.Notes, w.Done, w.Distance,
+			`INSERT INTO workouts (id, plan_id, runType, day, description, notes, status, distance) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			w.ID, w.PlanID, w.RunType, w.Day.Format(dateFormat), w.Description, w.Notes, w.Status, w.Distance,
 		)
 		if err != nil {
 			tx.Rollback()
@@ -45,7 +45,7 @@ func (s *WorkoutStore) CreateBatch(workouts []*model.Workout) error {
 
 func (s *WorkoutStore) GetByID(id model.WorkoutID) (*model.Workout, error) {
 	row := s.db.QueryRow(
-		`SELECT id, plan_id, runType, day, description, notes, done, distance FROM workouts WHERE id = ?`,
+		`SELECT id, plan_id, runType, day, description, notes, status, distance FROM workouts WHERE id = ?`,
 		id,
 	)
 	return scanWorkout(row)
@@ -53,7 +53,7 @@ func (s *WorkoutStore) GetByID(id model.WorkoutID) (*model.Workout, error) {
 
 func (s *WorkoutStore) GetByPlanID(planID model.TrainingPlanID) ([]*model.Workout, error) {
 	rows, err := s.db.Query(
-		`SELECT id, plan_id, runType, day, description, notes, done, distance FROM workouts WHERE plan_id = ?`,
+		`SELECT id, plan_id, runType, day, description, notes, status, distance FROM workouts WHERE plan_id = ?`,
 		planID,
 	)
 	if err != nil {
@@ -73,8 +73,8 @@ func (s *WorkoutStore) GetByPlanID(planID model.TrainingPlanID) ([]*model.Workou
 
 func (s *WorkoutStore) Update(workout *model.Workout) error {
 	_, err := s.db.Exec(
-		`UPDATE workouts SET runType = ?, day = ?, description = ?, notes = ?, done = ?, distance = ? WHERE id = ?`,
-		workout.RunType, workout.Day.Format(dateFormat), workout.Description, workout.Notes, workout.Done, workout.Distance, workout.ID,
+		`UPDATE workouts SET runType = ?, day = ?, description = ?, notes = ?, status = ?, distance = ? WHERE id = ?`,
+		workout.RunType, workout.Day.Format(dateFormat), workout.Description, workout.Notes, workout.Status, workout.Distance, workout.ID,
 	)
 	return err
 }
@@ -85,10 +85,9 @@ func (s *WorkoutStore) Delete(id model.WorkoutID) error {
 }
 
 func scanWorkout(row *sql.Row) (*model.Workout, error) {
-	var id, pid, runType, dayStr, description, notes string
+	var id, pid, runType, dayStr, description, notes, status string
 	var distance float64
-	var done bool
-	if err := row.Scan(&id, &pid, &runType, &dayStr, &description, &notes, &done, &distance); err != nil {
+	if err := row.Scan(&id, &pid, &runType, &dayStr, &description, &notes, &status, &distance); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
@@ -102,16 +101,15 @@ func scanWorkout(row *sql.Row) (*model.Workout, error) {
 		Day:         day,
 		Description: description,
 		Notes:       notes,
-		Done:        done,
+		Status:      status,
 		Distance:    distance,
 	}, nil
 }
 
 func scanWorkoutFromRows(rows *sql.Rows) (*model.Workout, error) {
-	var id, pid, runType, dayStr, description, notes string
+	var id, pid, runType, dayStr, description, notes, status string
 	var distance float64
-	var done bool
-	if err := rows.Scan(&id, &pid, &runType, &dayStr, &description, &notes, &done, &distance); err != nil {
+	if err := rows.Scan(&id, &pid, &runType, &dayStr, &description, &notes, &status, &distance); err != nil {
 		return nil, err
 	}
 
@@ -123,7 +121,7 @@ func scanWorkoutFromRows(rows *sql.Rows) (*model.Workout, error) {
 		Day:         day,
 		Description: description,
 		Notes:       notes,
-		Done:        done,
+		Status:      status,
 		Distance:    distance,
 	}, nil
 }
