@@ -12,9 +12,10 @@ import (
 )
 
 var (
-	ErrInvalidDistance = errors.New("distance cannot be negative")
-	ErrInvalidRunType  = errors.New("invalid run type")
-	ErrInvalidStatus   = errors.New("invalid status")
+	ErrInvalidDistance             = errors.New("distance cannot be negative")
+	ErrInvalidRunType              = errors.New("invalid run type")
+	ErrInvalidStatus               = errors.New("invalid status")
+	ErrStrengthTrainingNonZeroDist = errors.New("strength training must have a distance of 0km")
 )
 
 type BatchValidationError struct {
@@ -47,8 +48,12 @@ func (s *WorkoutService) Create(planID model.TrainingPlanID, runType string, day
 		return nil, ErrInvalidDistance
 	}
 
-	if runType != "easy_run" && runType != "intervals" && runType != "long_run" && runType != "tempo_run" {
+	if runType != "easy_run" && runType != "intervals" && runType != "long_run" && runType != "tempo_run" && runType != "strength_training" {
 		return nil, ErrInvalidRunType
+	}
+
+	if runType == "strength_training" && distance != 0 {
+		return nil, ErrStrengthTrainingNonZeroDist
 	}
 
 	workout := &model.Workout{
@@ -69,7 +74,7 @@ func (s *WorkoutService) Create(planID model.TrainingPlanID, runType string, day
 
 func (s *WorkoutService) CreateBatch(plan *model.TrainingPlan, items []BulkWorkoutInput) ([]*model.Workout, error) {
 	validRunTypes := map[string]bool{
-		"easy_run": true, "intervals": true, "long_run": true, "tempo_run": true,
+		"easy_run": true, "intervals": true, "long_run": true, "tempo_run": true, "strength_training": true,
 	}
 
 	workouts := make([]*model.Workout, 0, len(items))
@@ -79,6 +84,9 @@ func (s *WorkoutService) CreateBatch(plan *model.TrainingPlan, items []BulkWorko
 		}
 		if item.Distance < 0 {
 			return nil, &BatchValidationError{Index: i, Message: "distance cannot be negative"}
+		}
+		if item.RunType == "strength_training" && item.Distance != 0 {
+			return nil, &BatchValidationError{Index: i, Message: "strength training must have a distance of 0km"}
 		}
 		if item.Week < 1 || item.Week > plan.Weeks {
 			return nil, &BatchValidationError{Index: i, Message: fmt.Sprintf("week must be between 1 and %d", plan.Weeks)}
@@ -117,8 +125,12 @@ func (s *WorkoutService) Update(workout *model.Workout) error {
 		return ErrInvalidDistance
 	}
 
-	if workout.RunType != "easy_run" && workout.RunType != "intervals" && workout.RunType != "long_run" && workout.RunType != "tempo_run" {
+	if workout.RunType != "easy_run" && workout.RunType != "intervals" && workout.RunType != "long_run" && workout.RunType != "tempo_run" && workout.RunType != "strength_training" {
 		return ErrInvalidRunType
+	}
+
+	if workout.RunType == "strength_training" && workout.Distance != 0 {
+		return ErrStrengthTrainingNonZeroDist
 	}
 
 	if workout.Status != "pending" && workout.Status != "completed" && workout.Status != "skipped" {

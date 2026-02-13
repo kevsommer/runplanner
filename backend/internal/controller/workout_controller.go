@@ -44,7 +44,7 @@ type createWorkoutInput struct {
 	RunType     string  `json:"runType" binding:"required"`
 	Day         string  `json:"day" binding:"required"` // ISO date YYYY-MM-DD
 	Description string  `json:"description"`
-	Distance    float64 `json:"distance" binding:"required"`
+	Distance    float64 `json:"distance"`
 }
 
 func (w *WorkoutController) postCreate(c *gin.Context) {
@@ -84,6 +84,9 @@ func (w *WorkoutController) postCreate(c *gin.Context) {
 			return
 		case service.ErrInvalidRunType:
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid run type"})
+			return
+		case service.ErrStrengthTrainingNonZeroDist:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "strength training must have a distance of 0km"})
 			return
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -157,7 +160,7 @@ type bulkWorkoutItem struct {
 	Week        int     `json:"week" binding:"required"`
 	DayOfWeek   int     `json:"dayOfWeek" binding:"required"`
 	Description string  `json:"description"`
-	Distance    float64 `json:"distance" binding:"required"`
+	Distance    float64 `json:"distance"`
 }
 
 type bulkCreateWorkoutsInput struct {
@@ -285,6 +288,8 @@ func (w *WorkoutController) update(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "distance cannot be negative"})
 		case service.ErrInvalidRunType:
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid run type"})
+		case service.ErrStrengthTrainingNonZeroDist:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "strength training must have a distance of 0km"})
 		case service.ErrInvalidStatus:
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid status"})
 		default:

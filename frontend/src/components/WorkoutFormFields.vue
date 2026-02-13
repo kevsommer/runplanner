@@ -21,7 +21,7 @@
     />
   </div>
 
-  <div class="flex flex-column gap-2">
+  <div v-if="form.runType !== 'strength_training'" class="flex flex-column gap-2">
     <label for="distance">Distance (km)</label>
     <InputNumber
       id="distance"
@@ -38,12 +38,14 @@
 import Textarea from "primevue/textarea";
 import SelectButton from "primevue/selectbutton";
 import InputNumber from "primevue/inputnumber";
+import { watch } from "vue";
 
 const runTypeOptions = [
   { label: "Easy run", value: "easy_run" },
   { label: "Intervals", value: "intervals" },
   { label: "Long run", value: "long_run" },
   { label: "Tempo run", value: "tempo_run" },
+  { label: "Strength", value: "strength_training" },
 ];
 
 defineProps<{

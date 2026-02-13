@@ -116,6 +116,7 @@ function runTypeSeverity(runType: string): string | undefined {
     long_run: "warn",
     intervals: "danger",
     tempo_run: "info",
+    strength_training: "secondary",
   };
   return severities[runType];
 }

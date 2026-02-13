@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { computed, reactive, ref } from "vue";
 import Button from "primevue/button";
 import Card from "primevue/card";
 import Message from "primevue/message";
@@ -41,6 +41,8 @@ const form = reactive({
   distance: props.workout.distance,
 });
 
+const distance = computed(() => form.runType === "strength_training" ? 0 : form.distance);
+
 const loading = ref(false);
 const error = ref<string | null>(null);
 
@@ -52,7 +54,7 @@ function onSubmit() {
     .put(`/workouts/${props.workout.id}`, {
       runType: form.runType,
       description: form.description,
-      distance: form.distance,
+      distance: distance.value,
     })
     .then(() => {
       emit("updated");

@@ -115,6 +115,57 @@ func TestWorkoutController_Create(t *testing.T) {
 		assert.Equal(t, "", workout["description"])
 	})
 
+	t.Run("creates strength_training with distance 0", func(t *testing.T) {
+		body := map[string]interface{}{
+			"planId":      string(plan.ID),
+			"runType":     "strength_training",
+			"day":         "2025-06-01",
+			"description": "Upper body",
+			"distance":    0.0,
+		}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/api/workouts/", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusCreated, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		workout, ok := resp["workout"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "strength_training", workout["runType"])
+		assert.Equal(t, 0.0, workout["distance"])
+	})
+
+	t.Run("strength_training with non-zero distance returns 400", func(t *testing.T) {
+		body := map[string]interface{}{
+			"planId":      string(plan.ID),
+			"runType":     "strength_training",
+			"day":         "2025-06-01",
+			"description": "Upper body",
+			"distance":    5.0,
+		}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/api/workouts/", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		assert.Contains(t, resp["error"], "strength training must have a distance of 0km")
+	})
+
 	t.Run("unauthenticated returns 401", func(t *testing.T) {
 		body := map[string]interface{}{
 			"planId":      string(plan.ID),
@@ -208,6 +259,57 @@ func TestWorkoutController_BulkCreate(t *testing.T) {
 		workouts, ok := resp["workouts"].([]interface{})
 		require.True(t, ok)
 		assert.Len(t, workouts, 3)
+	})
+
+	t.Run("creates strength_training in bulk with distance 0", func(t *testing.T) {
+		strengthPlan, _ := planSvc.Create(u.ID, "Strength Plan", mustParseDate("2025-09-01"), 8)
+		body := map[string]interface{}{
+			"workouts": []map[string]interface{}{
+				{"runType": "easy_run", "week": 1, "dayOfWeek": 1, "description": "5km easy", "distance": 5.0},
+				{"runType": "strength_training", "week": 1, "dayOfWeek": 3, "description": "Upper body", "distance": 0.0},
+			},
+		}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/api/plans/"+string(strengthPlan.ID)+"/workouts/bulk", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusCreated, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		workouts, ok := resp["workouts"].([]interface{})
+		require.True(t, ok)
+		assert.Len(t, workouts, 2)
+
+		second := workouts[1].(map[string]interface{})
+		assert.Equal(t, "strength_training", second["runType"])
+		assert.Equal(t, 0.0, second["distance"])
+	})
+
+	t.Run("strength_training with non-zero distance in bulk returns 400", func(t *testing.T) {
+		strengthPlan2, _ := planSvc.Create(u.ID, "Strength Plan 2", mustParseDate("2025-10-01"), 8)
+		body := map[string]interface{}{
+			"workouts": []map[string]interface{}{
+				{"runType": "strength_training", "week": 1, "dayOfWeek": 3, "description": "Upper body", "distance": 5.0},
+			},
+		}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/api/plans/"+string(strengthPlan2.ID)+"/workouts/bulk", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		assert.Contains(t, resp["error"], "strength training must have a distance of 0km")
 	})
 
 	t.Run("invalid run type returns 400 and creates nothing", func(t *testing.T) {

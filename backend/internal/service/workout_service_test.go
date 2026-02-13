@@ -61,6 +61,25 @@ func TestWorkoutService_Create(t *testing.T) {
 		assert.Equal(t, ErrInvalidDistance, err)
 		assert.Nil(t, workout)
 	})
+
+	t.Run("creates strength_training with distance 0", func(t *testing.T) {
+		day := time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC)
+		workout, err := svc.Create(planID, "strength_training", day, "Upper body", 0)
+
+		require.NoError(t, err)
+		require.NotNil(t, workout)
+		assert.Equal(t, "strength_training", workout.RunType)
+		assert.Equal(t, 0.0, workout.Distance)
+	})
+
+	t.Run("strength_training with non-zero distance returns error", func(t *testing.T) {
+		day := time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC)
+		workout, err := svc.Create(planID, "strength_training", day, "Upper body", 5.0)
+
+		assert.Error(t, err)
+		assert.Equal(t, ErrStrengthTrainingNonZeroDist, err)
+		assert.Nil(t, workout)
+	})
 }
 
 func TestWorkoutService_CreateBatch(t *testing.T) {
@@ -179,6 +198,34 @@ func TestWorkoutService_CreateBatch(t *testing.T) {
 		assert.Contains(t, bve.Message, "dayOfWeek must be between")
 	})
 
+	t.Run("creates strength_training with distance 0", func(t *testing.T) {
+		strengthPlan := &model.TrainingPlan{ID: "plan-strength", StartDate: plan.StartDate, Weeks: 12}
+		items := []BulkWorkoutInput{
+			{RunType: "strength_training", Week: 1, DayOfWeek: 3, Description: "Upper body", Distance: 0},
+		}
+		workouts, err := svc.CreateBatch(strengthPlan, items)
+
+		require.NoError(t, err)
+		require.Len(t, workouts, 1)
+		assert.Equal(t, "strength_training", workouts[0].RunType)
+		assert.Equal(t, 0.0, workouts[0].Distance)
+	})
+
+	t.Run("strength_training with non-zero distance returns BatchValidationError", func(t *testing.T) {
+		items := []BulkWorkoutInput{
+			{RunType: "easy_run", Week: 1, DayOfWeek: 1, Description: "ok", Distance: 5.0},
+			{RunType: "strength_training", Week: 1, DayOfWeek: 3, Description: "Upper body", Distance: 3.0},
+		}
+		workouts, err := svc.CreateBatch(plan, items)
+
+		assert.Nil(t, workouts)
+		require.Error(t, err)
+		bve, ok := err.(*BatchValidationError)
+		require.True(t, ok)
+		assert.Equal(t, 1, bve.Index)
+		assert.Contains(t, bve.Message, "strength training must have a distance of 0km")
+	})
+
 	t.Run("no workouts created when validation fails", func(t *testing.T) {
 		isolatedPlan := &model.TrainingPlan{ID: "plan-no-create", StartDate: plan.StartDate, Weeks: 12}
 		items := []BulkWorkoutInput{
@@ -269,6 +316,27 @@ func TestWorkoutService_Update(t *testing.T) {
 		err := svc.Update(created)
 		assert.Error(t, err)
 		assert.Equal(t, ErrInvalidDistance, err)
+	})
+
+	t.Run("updates to strength_training with distance 0", func(t *testing.T) {
+		created.RunType = "strength_training"
+		created.Distance = 0
+		created.Status = "pending"
+		err := svc.Update(created)
+		require.NoError(t, err)
+
+		updated, err := svc.GetByID(created.ID)
+		require.NoError(t, err)
+		assert.Equal(t, "strength_training", updated.RunType)
+		assert.Equal(t, 0.0, updated.Distance)
+	})
+
+	t.Run("strength_training with non-zero distance returns error", func(t *testing.T) {
+		created.RunType = "strength_training"
+		created.Distance = 5.0
+		err := svc.Update(created)
+		assert.Error(t, err)
+		assert.Equal(t, ErrStrengthTrainingNonZeroDist, err)
 	})
 
 	t.Run("unknown id returns ErrNotFound", func(t *testing.T) {

@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { computed, reactive, ref } from "vue";
 import DatePicker from "primevue/datepicker";
 import Button from "primevue/button";
 import Card from "primevue/card";
@@ -49,6 +49,7 @@ const form = reactive({
   distance: 5,
 });
 
+const distance = computed(() => form.runType === "strength_training" ? 0 : form.distance);
 const loading = ref(false);
 const error = ref<string | null>(null);
 
@@ -58,7 +59,7 @@ function onSubmit() {
     runType: form.runType,
     day: formatDateToYYYYMMDD(form.day),
     description: form.description,
-    distance: form.distance,
+    distance: distance.value,
   };
 
   loading.value = true;
