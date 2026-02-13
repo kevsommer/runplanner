@@ -63,6 +63,137 @@ func TestWorkoutService_Create(t *testing.T) {
 	})
 }
 
+func TestWorkoutService_CreateBatch(t *testing.T) {
+	svc := setupWorkoutTest(t)
+	// Plan starts Monday 2025-03-10, 12 weeks
+	plan := &model.TrainingPlan{
+		ID:        "plan-batch",
+		StartDate: time.Date(2025, 3, 10, 0, 0, 0, 0, time.UTC),
+		Weeks:     12,
+	}
+
+	t.Run("creates all workouts with correct dates", func(t *testing.T) {
+		items := []BulkWorkoutInput{
+			{RunType: "easy_run", Week: 1, DayOfWeek: 1, Description: "5km easy", Distance: 5.0},       // Mon week 1 = 2025-03-10
+			{RunType: "long_run", Week: 1, DayOfWeek: 7, Description: "18km long", Distance: 18.0},      // Sun week 1 = 2025-03-16
+			{RunType: "tempo_run", Week: 2, DayOfWeek: 3, Description: "tempo", Distance: 8.0},           // Wed week 2 = 2025-03-19
+		}
+		workouts, err := svc.CreateBatch(plan, items)
+
+		require.NoError(t, err)
+		require.Len(t, workouts, 3)
+		for i, w := range workouts {
+			assert.NotEmpty(t, w.ID)
+			assert.Equal(t, plan.ID, w.PlanID)
+			assert.Equal(t, items[i].RunType, w.RunType)
+			assert.Equal(t, items[i].Distance, w.Distance)
+			assert.Equal(t, items[i].Description, w.Description)
+			assert.False(t, w.Done)
+		}
+		assert.Equal(t, time.Date(2025, 3, 10, 0, 0, 0, 0, time.UTC), workouts[0].Day)
+		assert.Equal(t, time.Date(2025, 3, 16, 0, 0, 0, 0, time.UTC), workouts[1].Day)
+		assert.Equal(t, time.Date(2025, 3, 19, 0, 0, 0, 0, time.UTC), workouts[2].Day)
+
+		// verify they're retrievable
+		stored, err := svc.GetByPlanID(plan.ID)
+		require.NoError(t, err)
+		assert.Len(t, stored, 3)
+	})
+
+	t.Run("empty description is allowed", func(t *testing.T) {
+		emptyPlan := &model.TrainingPlan{ID: "plan-empty-desc", StartDate: plan.StartDate, Weeks: 12}
+		items := []BulkWorkoutInput{
+			{RunType: "easy_run", Week: 1, DayOfWeek: 1, Description: "", Distance: 6.0},
+		}
+		workouts, err := svc.CreateBatch(emptyPlan, items)
+		require.NoError(t, err)
+		assert.Equal(t, "", workouts[0].Description)
+	})
+
+	t.Run("invalid run type returns BatchValidationError", func(t *testing.T) {
+		items := []BulkWorkoutInput{
+			{RunType: "easy_run", Week: 1, DayOfWeek: 1, Description: "ok", Distance: 5.0},
+			{RunType: "sprint", Week: 1, DayOfWeek: 2, Description: "bad", Distance: 3.0},
+		}
+		workouts, err := svc.CreateBatch(plan, items)
+
+		assert.Nil(t, workouts)
+		require.Error(t, err)
+		bve, ok := err.(*BatchValidationError)
+		require.True(t, ok)
+		assert.Equal(t, 1, bve.Index)
+		assert.Contains(t, bve.Message, "invalid run type")
+	})
+
+	t.Run("negative distance returns BatchValidationError", func(t *testing.T) {
+		items := []BulkWorkoutInput{
+			{RunType: "easy_run", Week: 1, DayOfWeek: 1, Description: "bad", Distance: -1.0},
+		}
+		workouts, err := svc.CreateBatch(plan, items)
+
+		assert.Nil(t, workouts)
+		require.Error(t, err)
+		bve, ok := err.(*BatchValidationError)
+		require.True(t, ok)
+		assert.Equal(t, 0, bve.Index)
+		assert.Contains(t, bve.Message, "distance")
+	})
+
+	t.Run("week exceeding plan weeks returns BatchValidationError", func(t *testing.T) {
+		items := []BulkWorkoutInput{
+			{RunType: "easy_run", Week: 13, DayOfWeek: 1, Description: "too far", Distance: 5.0},
+		}
+		workouts, err := svc.CreateBatch(plan, items)
+
+		assert.Nil(t, workouts)
+		require.Error(t, err)
+		bve, ok := err.(*BatchValidationError)
+		require.True(t, ok)
+		assert.Equal(t, 0, bve.Index)
+		assert.Contains(t, bve.Message, "week must be between 1 and 12")
+	})
+
+	t.Run("week 0 returns BatchValidationError", func(t *testing.T) {
+		items := []BulkWorkoutInput{
+			{RunType: "easy_run", Week: 0, DayOfWeek: 1, Description: "bad", Distance: 5.0},
+		}
+		workouts, err := svc.CreateBatch(plan, items)
+
+		assert.Nil(t, workouts)
+		require.Error(t, err)
+		bve, ok := err.(*BatchValidationError)
+		require.True(t, ok)
+		assert.Contains(t, bve.Message, "week must be between")
+	})
+
+	t.Run("dayOfWeek out of range returns BatchValidationError", func(t *testing.T) {
+		items := []BulkWorkoutInput{
+			{RunType: "easy_run", Week: 1, DayOfWeek: 8, Description: "bad", Distance: 5.0},
+		}
+		workouts, err := svc.CreateBatch(plan, items)
+
+		assert.Nil(t, workouts)
+		require.Error(t, err)
+		bve, ok := err.(*BatchValidationError)
+		require.True(t, ok)
+		assert.Contains(t, bve.Message, "dayOfWeek must be between")
+	})
+
+	t.Run("no workouts created when validation fails", func(t *testing.T) {
+		isolatedPlan := &model.TrainingPlan{ID: "plan-no-create", StartDate: plan.StartDate, Weeks: 12}
+		items := []BulkWorkoutInput{
+			{RunType: "easy_run", Week: 1, DayOfWeek: 1, Description: "good", Distance: 5.0},
+			{RunType: "bad_type", Week: 1, DayOfWeek: 2, Description: "bad", Distance: 3.0},
+		}
+		_, err := svc.CreateBatch(isolatedPlan, items)
+		require.Error(t, err)
+
+		stored, err := svc.GetByPlanID(isolatedPlan.ID)
+		require.NoError(t, err)
+		assert.Len(t, stored, 0)
+	})
+}
+
 func TestWorkoutService_GetByID(t *testing.T) {
 	svc := setupWorkoutTest(t)
 	planID := model.TrainingPlanID("plan-1")

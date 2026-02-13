@@ -25,6 +25,24 @@ func (s *WorkoutStore) Create(workout *model.Workout) error {
 	return err
 }
 
+func (s *WorkoutStore) CreateBatch(workouts []*model.Workout) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	for _, w := range workouts {
+		_, err := tx.Exec(
+			`INSERT INTO workouts (id, plan_id, runType, day, description, notes, done, distance) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			w.ID, w.PlanID, w.RunType, w.Day.Format(dateFormat), w.Description, w.Notes, w.Done, w.Distance,
+		)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
 func (s *WorkoutStore) GetByID(id model.WorkoutID) (*model.Workout, error) {
 	row := s.db.QueryRow(
 		`SELECT id, plan_id, runType, day, description, notes, done, distance FROM workouts WHERE id = ?`,

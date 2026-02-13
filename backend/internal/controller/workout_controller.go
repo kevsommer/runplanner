@@ -35,6 +35,7 @@ func RegisterWorkoutRoutes(rg *gin.RouterGroup, workouts *service.WorkoutService
 	plansGroup.Use(requireAuth)
 	{
 		plansGroup.GET("/:id/workouts", wc.getByPlanID)
+		plansGroup.POST("/:id/workouts/bulk", wc.postBulkCreate)
 	}
 }
 
@@ -150,6 +151,66 @@ func (w *WorkoutController) getByPlanID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"workouts": workouts})
 }
 
+
+type bulkWorkoutItem struct {
+	RunType     string  `json:"runType" binding:"required"`
+	Week        int     `json:"week" binding:"required"`
+	DayOfWeek   int     `json:"dayOfWeek" binding:"required"`
+	Description string  `json:"description"`
+	Distance    float64 `json:"distance" binding:"required"`
+}
+
+type bulkCreateWorkoutsInput struct {
+	Workouts []bulkWorkoutItem `json:"workouts" binding:"required,dive"`
+}
+
+func (w *WorkoutController) postBulkCreate(c *gin.Context) {
+	uid := currentUserID(c)
+	planID := model.TrainingPlanID(c.Param("id"))
+
+	plan, err := w.plans.GetByID(planID)
+	if err != nil {
+		if err == store.ErrNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "plan not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get plan"})
+		return
+	}
+	if plan.UserID != model.UserID(uid) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "plan not found"})
+		return
+	}
+
+	var req bulkCreateWorkoutsInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "workouts array is required with runType, week, dayOfWeek, and distance for each item"})
+		return
+	}
+
+	items := make([]service.BulkWorkoutInput, len(req.Workouts))
+	for i, wi := range req.Workouts {
+		items[i] = service.BulkWorkoutInput{
+			RunType:     wi.RunType,
+			Week:        wi.Week,
+			DayOfWeek:   wi.DayOfWeek,
+			Description: wi.Description,
+			Distance:    wi.Distance,
+		}
+	}
+
+	workouts, err := w.workouts.CreateBatch(plan, items)
+	if err != nil {
+		if bve, ok := err.(*service.BatchValidationError); ok {
+			c.JSON(http.StatusBadRequest, gin.H{"error": bve.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create workouts"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"workouts": workouts})
+}
 
 type updateWorkoutInput struct {
 	RunType     *string  `json:"runType"`

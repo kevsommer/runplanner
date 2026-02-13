@@ -155,6 +155,205 @@ func TestWorkoutController_Create(t *testing.T) {
 	})
 }
 
+func TestWorkoutController_BulkCreate(t *testing.T) {
+	r, authSvc, planSvc, _ := setupWorkoutsTestRouter(t)
+	u, err := authSvc.Register("bulk@example.com", "password123")
+	require.NoError(t, err)
+	plan, err := planSvc.Create(u.ID, "Bulk Plan", mustParseDate("2025-06-15"), 16)
+	require.NoError(t, err)
+	cookies := loginAndGetWorkoutCookies(t, r, "bulk@example.com", "password123")
+
+	t.Run("creates multiple workouts", func(t *testing.T) {
+		body := map[string]interface{}{
+			"workouts": []map[string]interface{}{
+				{"runType": "easy_run", "week": 1, "dayOfWeek": 1, "description": "5km easy", "distance": 5.0},
+				{"runType": "long_run", "week": 1, "dayOfWeek": 7, "description": "18km long", "distance": 18.0},
+				{"runType": "tempo_run", "week": 2, "dayOfWeek": 3, "description": "", "distance": 7.5},
+			},
+		}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/api/plans/"+string(plan.ID)+"/workouts/bulk", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusCreated, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		workouts, ok := resp["workouts"].([]interface{})
+		require.True(t, ok)
+		assert.Len(t, workouts, 3)
+
+		first := workouts[0].(map[string]interface{})
+		assert.Equal(t, "easy_run", first["runType"])
+		assert.Equal(t, 5.0, first["distance"])
+		assert.NotEmpty(t, first["id"])
+		assert.Equal(t, string(plan.ID), first["planId"])
+	})
+
+	t.Run("workouts are retrievable after bulk create", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/plans/"+string(plan.ID)+"/workouts", nil)
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		workouts, ok := resp["workouts"].([]interface{})
+		require.True(t, ok)
+		assert.Len(t, workouts, 3)
+	})
+
+	t.Run("invalid run type returns 400 and creates nothing", func(t *testing.T) {
+		otherPlan, _ := planSvc.Create(u.ID, "Other Plan", mustParseDate("2025-07-01"), 8)
+		body := map[string]interface{}{
+			"workouts": []map[string]interface{}{
+				{"runType": "easy_run", "week": 1, "dayOfWeek": 1, "description": "ok", "distance": 5.0},
+				{"runType": "sprint", "week": 1, "dayOfWeek": 2, "description": "bad", "distance": 3.0},
+			},
+		}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/api/plans/"+string(otherPlan.ID)+"/workouts/bulk", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		assert.Contains(t, resp["error"], "workout[1]")
+
+		// verify no workouts were created
+		getReq := httptest.NewRequest(http.MethodGet, "/api/plans/"+string(otherPlan.ID)+"/workouts", nil)
+		for _, c := range cookies {
+			getReq.AddCookie(c)
+		}
+		getW := httptest.NewRecorder()
+		r.ServeHTTP(getW, getReq)
+		var getResp map[string]interface{}
+		require.NoError(t, json.Unmarshal(getW.Body.Bytes(), &getResp))
+		workouts := getResp["workouts"]
+		assert.Nil(t, workouts)
+	})
+
+	t.Run("week exceeding plan weeks returns 400", func(t *testing.T) {
+		shortPlan, _ := planSvc.Create(u.ID, "Short Plan", mustParseDate("2025-08-01"), 4)
+		body := map[string]interface{}{
+			"workouts": []map[string]interface{}{
+				{"runType": "easy_run", "week": 5, "dayOfWeek": 1, "description": "too far", "distance": 5.0},
+			},
+		}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/api/plans/"+string(shortPlan.ID)+"/workouts/bulk", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		assert.Contains(t, resp["error"], "week must be between")
+	})
+
+	t.Run("dayOfWeek out of range returns 400", func(t *testing.T) {
+		body := map[string]interface{}{
+			"workouts": []map[string]interface{}{
+				{"runType": "easy_run", "week": 1, "dayOfWeek": 8, "description": "bad", "distance": 5.0},
+			},
+		}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/api/plans/"+string(plan.ID)+"/workouts/bulk", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("empty workouts array returns 400", func(t *testing.T) {
+		body := map[string]interface{}{}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/api/plans/"+string(plan.ID)+"/workouts/bulk", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("nonexistent plan returns 404", func(t *testing.T) {
+		body := map[string]interface{}{
+			"workouts": []map[string]interface{}{
+				{"runType": "easy_run", "week": 1, "dayOfWeek": 1, "description": "ok", "distance": 5.0},
+			},
+		}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/api/plans/nonexistent/workouts/bulk", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("plan owned by another user returns 404", func(t *testing.T) {
+		otherUser, _ := authSvc.Register("otherbulk@example.com", "password123")
+		otherPlan, _ := planSvc.Create(otherUser.ID, "Secret Plan", mustParseDate("2025-06-01"), 8)
+
+		body := map[string]interface{}{
+			"workouts": []map[string]interface{}{
+				{"runType": "easy_run", "week": 1, "dayOfWeek": 1, "description": "ok", "distance": 5.0},
+			},
+		}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/api/plans/"+string(otherPlan.ID)+"/workouts/bulk", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("unauthenticated returns 401", func(t *testing.T) {
+		body := map[string]interface{}{
+			"workouts": []map[string]interface{}{
+				{"runType": "easy_run", "week": 1, "dayOfWeek": 1, "description": "ok", "distance": 5.0},
+			},
+		}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/api/plans/"+string(plan.ID)+"/workouts/bulk", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+}
+
 func TestWorkoutController_GetByID(t *testing.T) {
 	r, authSvc, planSvc, workoutSvc := setupWorkoutsTestRouter(t)
 	u, _ := authSvc.Register("getworkout@example.com", "password123")

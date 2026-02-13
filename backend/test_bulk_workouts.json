@@ -1,0 +1,53 @@
+{
+  "workouts": [
+    { "runType": "easy_run", "week": 1, "dayOfWeek": 1, "description": "+4x 20s Strides", "distance": 8.0 },
+    { "runType": "tempo_run", "week": 1, "dayOfWeek": 3, "description": "4k Easy\n3k Tempo\n3k Easy", "distance": 10.0 },
+    { "runType": "easy_run", "week": 1, "dayOfWeek": 4, "description": "", "distance": 6.0 },
+    { "runType": "long_run", "week": 1, "dayOfWeek": 6, "description": "All Easy", "distance": 16.0 },
+
+    { "runType": "easy_run", "week": 2, "dayOfWeek": 1, "description": "+4x 20s Strides", "distance": 9.0 },
+    { "runType": "tempo_run", "week": 2, "dayOfWeek": 3, "description": "4k Easy\n4k Tempo\n3k Easy", "distance": 11.0 },
+    { "runType": "easy_run", "week": 2, "dayOfWeek": 4, "description": "", "distance": 6.0 },
+    { "runType": "long_run", "week": 2, "dayOfWeek": 6, "description": "All Easy", "distance": 18.0 },
+
+    { "runType": "easy_run", "week": 3, "dayOfWeek": 1, "description": "+5x 20s Strides", "distance": 10.0 },
+    { "runType": "tempo_run", "week": 3, "dayOfWeek": 3, "description": "4k Easy\n4k Tempo\n4k Easy", "distance": 12.0 },
+    { "runType": "easy_run", "week": 3, "dayOfWeek": 4, "description": "", "distance": 7.0 },
+    { "runType": "long_run", "week": 3, "dayOfWeek": 6, "description": "Easy w/ last 3k at Marathon Pace", "distance": 19.0 },
+
+    { "runType": "easy_run", "week": 4, "dayOfWeek": 1, "description": "+4x 20s Strides", "distance": 7.0 },
+    { "runType": "tempo_run", "week": 4, "dayOfWeek": 3, "description": "3k Easy\n3k Tempo\n3k Easy", "distance": 9.0 },
+    { "runType": "easy_run", "week": 4, "dayOfWeek": 4, "description": "", "distance": 5.0 },
+    { "runType": "long_run", "week": 4, "dayOfWeek": 6, "description": "All Easy", "distance": 14.0 },
+
+    { "runType": "easy_run", "week": 5, "dayOfWeek": 1, "description": "+5x 20s Strides", "distance": 10.0 },
+    { "runType": "tempo_run", "week": 5, "dayOfWeek": 3, "description": "4k Easy\n5k Tempo\n4k Easy", "distance": 13.0 },
+    { "runType": "easy_run", "week": 5, "dayOfWeek": 4, "description": "", "distance": 7.0 },
+    { "runType": "long_run", "week": 5, "dayOfWeek": 6, "description": "Easy w/ last 4k at Marathon Pace", "distance": 22.0 },
+
+    { "runType": "easy_run", "week": 6, "dayOfWeek": 1, "description": "+5x 20s Strides", "distance": 11.0 },
+    { "runType": "tempo_run", "week": 6, "dayOfWeek": 3, "description": "4k Easy\n5k Tempo\n4k Easy", "distance": 13.0 },
+    { "runType": "easy_run", "week": 6, "dayOfWeek": 4, "description": "", "distance": 8.0 },
+    { "runType": "long_run", "week": 6, "dayOfWeek": 6, "description": "Easy w/ 5k at Marathon Pace", "distance": 25.0 },
+
+    { "runType": "easy_run", "week": 7, "dayOfWeek": 1, "description": "+6x 20s Strides", "distance": 12.0 },
+    { "runType": "tempo_run", "week": 7, "dayOfWeek": 3, "description": "4k Easy\n6k Tempo\n4k Easy", "distance": 14.0 },
+    { "runType": "easy_run", "week": 7, "dayOfWeek": 4, "description": "", "distance": 8.0 },
+    { "runType": "long_run", "week": 7, "dayOfWeek": 6, "description": "Easy w/ last 6k at Marathon Pace", "distance": 27.0 },
+
+    { "runType": "easy_run", "week": 8, "dayOfWeek": 1, "description": "+5x 20s Strides", "distance": 10.0 },
+    { "runType": "tempo_run", "week": 8, "dayOfWeek": 3, "description": "4k Easy\n5k Tempo\n3k Easy", "distance": 12.0 },
+    { "runType": "easy_run", "week": 8, "dayOfWeek": 4, "description": "", "distance": 7.0 },
+    { "runType": "long_run", "week": 8, "dayOfWeek": 6, "description": "Easy w/ 5k at Marathon Pace", "distance": 22.0 },
+
+    { "runType": "easy_run", "week": 9, "dayOfWeek": 1, "description": "+4x 20s Strides", "distance": 8.0 },
+    { "runType": "tempo_run", "week": 9, "dayOfWeek": 3, "description": "3k Easy\n4k Tempo\n3k Easy", "distance": 10.0 },
+    { "runType": "easy_run", "week": 9, "dayOfWeek": 4, "description": "", "distance": 5.0 },
+    { "runType": "long_run", "week": 9, "dayOfWeek": 6, "description": "All Easy", "distance": 16.0 },
+
+    { "runType": "easy_run", "week": 10, "dayOfWeek": 1, "description": "+4x 20s Strides", "distance": 6.0 },
+    { "runType": "tempo_run", "week": 10, "dayOfWeek": 3, "description": "3k Easy\n3k Tempo\n2k Easy", "distance": 8.0 },
+    { "runType": "easy_run", "week": 10, "dayOfWeek": 4, "description": "Shakeout", "distance": 4.0 },
+    { "runType": "long_run", "week": 10, "dayOfWeek": 6, "description": "RACE DAY - Marathon!", "distance": 42.2 }
+  ]
+}

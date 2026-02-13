@@ -25,6 +25,15 @@ func (s *memWorkoutStore) Create(workout *model.Workout) error {
 	return nil
 }
 
+func (s *memWorkoutStore) CreateBatch(workouts []*model.Workout) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, w := range workouts {
+		s.byID[w.ID] = w
+	}
+	return nil
+}
+
 func (s *memWorkoutStore) GetByID(id model.WorkoutID) (*model.Workout, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
