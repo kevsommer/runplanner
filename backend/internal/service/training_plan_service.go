@@ -61,6 +61,94 @@ func (s *TrainingPlanService) GetByID(id model.TrainingPlanID) (*model.TrainingP
 	return s.plans.GetByID(id)
 }
 
+type DayDetail struct {
+	Date     string           `json:"date"`
+	DayName  string           `json:"dayName"`
+	Workouts []*model.Workout `json:"workouts"`
+}
+
+type WeekSummary struct {
+	Number    int         `json:"number"`
+	PlannedKm float64    `json:"plannedKm"`
+	DoneKm    float64    `json:"doneKm"`
+	AllDone   bool        `json:"allDone"`
+	Days      []DayDetail `json:"days"`
+}
+
+type PlanDetail struct {
+	ID           model.TrainingPlanID `json:"id"`
+	UserID       model.UserID         `json:"userId"`
+	Name         string               `json:"name"`
+	EndDate      time.Time            `json:"endDate"`
+	Weeks        int                  `json:"weeks"`
+	StartDate    time.Time            `json:"startDate"`
+	CreatedAt    time.Time            `json:"createdAt"`
+	WeeksSummary []WeekSummary        `json:"weeksSummary"`
+}
+
+var dayNames = []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
+
+func BuildPlanDetail(plan *model.TrainingPlan, workouts []*model.Workout) *PlanDetail {
+	weeksSummary := make([]WeekSummary, plan.Weeks)
+
+	for weekIdx := 0; weekIdx < plan.Weeks; weekIdx++ {
+		days := make([]DayDetail, 7)
+		for dayIdx := 0; dayIdx < 7; dayIdx++ {
+			date := plan.StartDate.AddDate(0, 0, weekIdx*7+dayIdx)
+			dateStr := date.Format("2006-01-02")
+
+			var dayWorkouts []*model.Workout
+			for _, w := range workouts {
+				if w.Day.Format("2006-01-02") == dateStr {
+					dayWorkouts = append(dayWorkouts, w)
+				}
+			}
+			if dayWorkouts == nil {
+				dayWorkouts = []*model.Workout{}
+			}
+
+			days[dayIdx] = DayDetail{
+				Date:     dateStr,
+				DayName:  dayNames[dayIdx],
+				Workouts: dayWorkouts,
+			}
+		}
+
+		var plannedKm, doneKm float64
+		var totalWorkouts int
+		var allCompleted int
+		for _, d := range days {
+			for _, w := range d.Workouts {
+				totalWorkouts++
+				plannedKm += w.Distance
+				if w.Status == "completed" {
+					doneKm += w.Distance
+					allCompleted++
+				}
+			}
+		}
+
+		weeksSummary[weekIdx] = WeekSummary{
+			Number:    weekIdx + 1,
+			PlannedKm: plannedKm,
+			DoneKm:    doneKm,
+			AllDone:   totalWorkouts > 0 && allCompleted == totalWorkouts,
+			Days:      days,
+		}
+	}
+
+	return &PlanDetail{
+		ID:           plan.ID,
+		UserID:       plan.UserID,
+		Name:         plan.Name,
+		EndDate:      plan.EndDate,
+		Weeks:        plan.Weeks,
+		StartDate:    plan.StartDate,
+		CreatedAt:    plan.CreatedAt,
+		WeeksSummary: weeksSummary,
+	}
+}
+
 func (s *TrainingPlanService) GetByUserID(userID model.UserID) ([]*model.TrainingPlan, error) {
 	return s.plans.GetByUserID(userID)
 }

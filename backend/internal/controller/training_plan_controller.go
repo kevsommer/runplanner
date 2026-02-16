@@ -12,7 +12,8 @@ import (
 )
 
 type TrainingPlanController struct {
-	svc *service.TrainingPlanService
+	svc      *service.TrainingPlanService
+	workouts *service.WorkoutService
 }
 
 func requireAuth(c *gin.Context) {
@@ -23,8 +24,8 @@ func requireAuth(c *gin.Context) {
 	c.Next()
 }
 
-func RegisterTrainingPlanRoutes(rg *gin.RouterGroup, svc *service.TrainingPlanService) {
-	tc := &TrainingPlanController{svc: svc}
+func RegisterTrainingPlanRoutes(rg *gin.RouterGroup, svc *service.TrainingPlanService, workouts *service.WorkoutService) {
+	tc := &TrainingPlanController{svc: svc, workouts: workouts}
 	plans := rg.Group("/plans")
 	plans.Use(requireAuth)
 	{
@@ -84,7 +85,13 @@ func (t *TrainingPlanController) getByID(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "plan not found"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"plan": plan})
+	workouts, err := t.workouts.GetByPlanID(plan.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get workouts"})
+		return
+	}
+	detail := service.BuildPlanDetail(plan, workouts)
+	c.JSON(http.StatusOK, gin.H{"plan": detail})
 }
 
 func (t *TrainingPlanController) getByUserID(c *gin.Context) {

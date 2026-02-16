@@ -9,7 +9,7 @@
 
       <Accordion :value="currentWeekValue">
         <AccordionPanel
-          v-for="week in weeks"
+          v-for="week in plan.weeksSummary"
           :key="week.number"
           :value="String(week.number - 1)"
         >
@@ -32,8 +32,8 @@
                 :date="day.date"
                 :workouts="day.workouts"
                 :plan-id="String(planId)"
-                @workout-created="fetchWorkouts"
-                @workout-updated="fetchWorkouts"
+                @workout-created="fetchTrainingPlan"
+                @workout-updated="fetchTrainingPlan"
               />
             </div>
           </AccordionContent>
@@ -48,7 +48,7 @@ import { api } from "@/api";
 import DayCard from "@/components/DayCard.vue";
 import { useApi } from "@/composables/useApi";
 import { type Workout } from "@/components/WorkoutCard.vue";
-import { formatDate, formatDateISO } from "@/utils";
+import { formatDate } from "@/utils";
 import Accordion from "primevue/accordion";
 import AccordionPanel from "primevue/accordionpanel";
 import AccordionHeader from "primevue/accordionheader";
@@ -59,21 +59,13 @@ import { useRouter } from "vue-router";
 
 const router = useRouter();
 
-type Plan = {
-  id: number;
-  name: string;
-  startDate: string;
-  endDate: string;
-  weeks: number;
-};
-
 type WeekDay = {
   date: string;
   dayName: string;
   workouts: Workout[];
 };
 
-type Week = {
+type WeekSummary = {
   number: number;
   days: WeekDay[];
   plannedKm: number;
@@ -81,20 +73,18 @@ type Week = {
   allDone: boolean;
 };
 
+type Plan = {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  weeks: number;
+  weeksSummary: WeekSummary[];
+};
+
 const plan = ref<Plan>();
-const workouts = ref<Workout[]>([]);
 
 const planId = router.currentRoute.value.params.id;
-
-const dayNames = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-];
 
 const currentWeekIndex = computed<number | null>(() => {
   if (!plan.value) return null;
@@ -116,41 +106,6 @@ const currentWeekValue = computed<string | null>(() => {
   return currentWeekIndex.value !== null ? String(currentWeekIndex.value) : null;
 });
 
-const weeks = computed<Week[]>(() => {
-  if (!plan.value) return [];
-
-  const result: Week[] = [];
-  const startDate = new Date(plan.value.startDate);
-
-  for (let weekNum = 1; weekNum <= plan.value.weeks; weekNum++) {
-    const days: WeekDay[] = [];
-
-    for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
-      const currentDate = new Date(startDate);
-      currentDate.setDate(startDate.getDate() + (weekNum - 1) * 7 + dayIndex);
-      const dateStr = formatDateISO(currentDate);
-
-      days.push({
-        date: dateStr,
-        dayName: dayNames[dayIndex],
-        workouts: workouts.value.filter(
-          (w) => w.day.substring(0, 10) === dateStr,
-        ),
-      });
-    }
-
-    const weekWorkouts = days.flatMap((d) => d.workouts);
-    const plannedKm = weekWorkouts.reduce((sum, w) => sum + (w.distance || 0), 0);
-    const doneKm = weekWorkouts.filter((w) => w.status === 'completed').reduce((sum, w) => sum + (w.distance || 0), 0);
-
-    const allDone = weekWorkouts.length > 0 && weekWorkouts.every((w) => w.status === 'completed');
-
-    result.push({ number: weekNum, days, plannedKm, doneKm, allDone });
-  }
-
-  return result;
-});
-
 const { exec: fetchTrainingPlan } = useApi({
   exec: () => api.get(`/plans/${planId}`),
   onSuccess: ({ data }) => {
@@ -158,13 +113,5 @@ const { exec: fetchTrainingPlan } = useApi({
   },
 });
 
-const { exec: fetchWorkouts } = useApi({
-  exec: () => api.get(`/plans/${planId}/workouts`),
-  onSuccess: ({ data }) => {
-    workouts.value = data.workouts;
-  },
-});
-
 fetchTrainingPlan();
-fetchWorkouts();
 </script>

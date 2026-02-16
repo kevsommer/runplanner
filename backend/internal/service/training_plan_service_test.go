@@ -90,6 +90,90 @@ func TestTrainingPlanService_GetByID(t *testing.T) {
 	})
 }
 
+func TestBuildPlanDetail(t *testing.T) {
+	plan := &model.TrainingPlan{
+		ID:        "plan-1",
+		UserID:    "user-1",
+		Name:      "Test Plan",
+		StartDate: time.Date(2025, 3, 10, 0, 0, 0, 0, time.UTC), // Monday
+		EndDate:   time.Date(2025, 3, 23, 0, 0, 0, 0, time.UTC),
+		Weeks:     2,
+	}
+
+	t.Run("empty workouts produces correct week structure", func(t *testing.T) {
+		detail := BuildPlanDetail(plan, []*model.Workout{})
+
+		assert.Equal(t, plan.ID, detail.ID)
+		assert.Equal(t, plan.Name, detail.Name)
+		require.Len(t, detail.WeeksSummary, 2)
+
+		week1 := detail.WeeksSummary[0]
+		assert.Equal(t, 1, week1.Number)
+		assert.Equal(t, 0.0, week1.PlannedKm)
+		assert.Equal(t, 0.0, week1.DoneKm)
+		assert.False(t, week1.AllDone)
+		require.Len(t, week1.Days, 7)
+		assert.Equal(t, "Monday", week1.Days[0].DayName)
+		assert.Equal(t, "2025-03-10", week1.Days[0].Date)
+		assert.Equal(t, "Sunday", week1.Days[6].DayName)
+		assert.Equal(t, "2025-03-16", week1.Days[6].Date)
+		assert.Len(t, week1.Days[0].Workouts, 0)
+
+		week2 := detail.WeeksSummary[1]
+		assert.Equal(t, 2, week2.Number)
+		assert.Equal(t, "2025-03-17", week2.Days[0].Date)
+	})
+
+	t.Run("workouts are assigned to correct days", func(t *testing.T) {
+		workouts := []*model.Workout{
+			{ID: "w1", PlanID: "plan-1", RunType: "easy_run", Day: time.Date(2025, 3, 10, 0, 0, 0, 0, time.UTC), Status: "pending", Distance: 5},
+			{ID: "w2", PlanID: "plan-1", RunType: "long_run", Day: time.Date(2025, 3, 10, 0, 0, 0, 0, time.UTC), Status: "completed", Distance: 10},
+			{ID: "w3", PlanID: "plan-1", RunType: "intervals", Day: time.Date(2025, 3, 17, 0, 0, 0, 0, time.UTC), Status: "completed", Distance: 7},
+		}
+
+		detail := BuildPlanDetail(plan, workouts)
+
+		// Week 1: 2 workouts on Monday
+		week1 := detail.WeeksSummary[0]
+		assert.Len(t, week1.Days[0].Workouts, 2)
+		assert.Equal(t, 15.0, week1.PlannedKm)
+		assert.Equal(t, 10.0, week1.DoneKm)
+		assert.False(t, week1.AllDone)
+
+		// Week 2: 1 workout on Monday
+		week2 := detail.WeeksSummary[1]
+		assert.Len(t, week2.Days[0].Workouts, 1)
+		assert.Equal(t, 7.0, week2.PlannedKm)
+		assert.Equal(t, 7.0, week2.DoneKm)
+		assert.True(t, week2.AllDone)
+	})
+
+	t.Run("allDone is false when no workouts exist", func(t *testing.T) {
+		detail := BuildPlanDetail(plan, []*model.Workout{})
+		assert.False(t, detail.WeeksSummary[0].AllDone)
+	})
+
+	t.Run("allDone is true only when all workouts completed", func(t *testing.T) {
+		workouts := []*model.Workout{
+			{ID: "w1", PlanID: "plan-1", RunType: "easy_run", Day: time.Date(2025, 3, 10, 0, 0, 0, 0, time.UTC), Status: "completed", Distance: 5},
+			{ID: "w2", PlanID: "plan-1", RunType: "long_run", Day: time.Date(2025, 3, 11, 0, 0, 0, 0, time.UTC), Status: "completed", Distance: 10},
+		}
+		detail := BuildPlanDetail(plan, workouts)
+		assert.True(t, detail.WeeksSummary[0].AllDone)
+	})
+
+	t.Run("skipped workouts count toward planned but not done km", func(t *testing.T) {
+		workouts := []*model.Workout{
+			{ID: "w1", PlanID: "plan-1", RunType: "easy_run", Day: time.Date(2025, 3, 10, 0, 0, 0, 0, time.UTC), Status: "skipped", Distance: 5},
+		}
+		detail := BuildPlanDetail(plan, workouts)
+		week1 := detail.WeeksSummary[0]
+		assert.Equal(t, 5.0, week1.PlannedKm)
+		assert.Equal(t, 0.0, week1.DoneKm)
+		assert.False(t, week1.AllDone)
+	})
+}
+
 func TestTrainingPlanService_GetByUserID(t *testing.T) {
 	svc := setupTrainingPlanTest(t)
 	userID := model.UserID("user-2")
