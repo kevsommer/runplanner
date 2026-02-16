@@ -5,7 +5,10 @@
   >
     <div class="flex justify-content-between align-items-start mb-3">
       <h3 class="text-xl font-bold m-0">{{ plan.name }}</h3>
-      <Badge v-if="isActive" :value="`Week ${currentWeek}`" severity="info" />
+      <Badge
+        v-if="isActive"
+        :value="`Week ${currentWeek}`"
+        severity="info" />
     </div>
 
     <div class="flex flex-column gap-2 text-color-secondary text-sm mb-3">
@@ -17,7 +20,9 @@
         <i class="pi pi-clock" />
         <span>{{ plan.weeks }} weeks</span>
       </div>
-      <div v-if="daysRemaining !== null" class="flex align-items-center gap-2">
+      <div
+        v-if="daysRemaining !== null"
+        class="flex align-items-center gap-2">
         <i class="pi pi-flag" />
         <span v-if="daysRemaining > 0">{{ daysRemaining }} days until race day</span>
         <span v-else-if="daysRemaining === 0">Race day is today!</span>

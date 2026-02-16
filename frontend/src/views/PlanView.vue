@@ -1,6 +1,8 @@
 <template>
   <div class="flex justify-content-center">
-    <div class="p-4 w-full md:w-8 lg:w-6" v-if="plan">
+    <div
+      v-if="plan"
+      class="p-4 w-full md:w-8 lg:w-6">
       <h1 class="text-3xl font-bold mb-4">{{ plan.name }}</h1>
       <p class="text-color-secondary mb-2">
         {{ formatDate(plan.startDate) }} - {{ formatDate(plan.endDate) }}
@@ -16,8 +18,13 @@
           <AccordionHeader>
             <div class="flex align-items-center gap-2 w-full">
               <span>Week {{ week.number }}</span>
-              <i v-if="week.allDone" class="pi pi-check-circle text-green-500" />
-              <Badge v-if="week.number - 1 === currentWeekIndex" value="Current" severity="info" />
+              <i
+                v-if="week.allDone"
+                class="pi pi-check-circle text-green-500" />
+              <Badge
+                v-if="week.number - 1 === currentWeekIndex"
+                value="Current"
+                severity="info" />
               <span class="ml-auto text-sm text-color-secondary px-2">
                 {{ week.doneKm.toFixed(0) }} / {{ week.plannedKm.toFixed(0) }} km
               </span>

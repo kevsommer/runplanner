@@ -3,17 +3,36 @@
     <template #title>Add workout</template>
 
     <template #content>
-      <form @submit.prevent="onSubmit" class="flex flex-column gap-3">
-        <div v-if="!initialDate" class="flex flex-column gap-2" data-test="day-field">
+      <form
+        class="flex flex-column gap-3"
+        @submit.prevent="onSubmit">
+        <div
+          v-if="!initialDate"
+          class="flex flex-column gap-2"
+          data-test="day-field">
           <label for="day">Day</label>
-          <DatePicker id="day" v-model="form.day" dateFormat="yy-mm-dd" showIcon />
+          <DatePicker
+            id="day"
+            v-model="form.day"
+            dateFormat="yy-mm-dd"
+            showIcon />
         </div>
 
         <WorkoutFormFields :form="form" />
 
         <div class="flex gap-2">
-          <Button type="submit" :loading label="Create workout" data-test="submit-button" />
-          <Button type="button" label="Cancel" severity="secondary" text @click="emit('cancel')" data-test="cancel-button" />
+          <Button
+            type="submit"
+            :loading
+            label="Create workout"
+            data-test="submit-button" />
+          <Button
+            type="button"
+            label="Cancel"
+            severity="secondary"
+            text
+            data-test="cancel-button"
+            @click="emit('cancel')" />
         </div>
       </form>
     </template>

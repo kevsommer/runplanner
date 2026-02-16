@@ -21,7 +21,9 @@
     />
   </div>
 
-  <div v-if="form.runType !== 'strength_training'" class="flex flex-column gap-2">
+  <div
+    v-if="form.runType !== 'strength_training'"
+    class="flex flex-column gap-2">
     <label for="distance">Distance (km)</label>
     <InputNumber
       id="distance"

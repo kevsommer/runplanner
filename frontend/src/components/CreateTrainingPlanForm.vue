@@ -3,23 +3,41 @@
     <template #title>Create a new training plan</template>
 
     <template #content>
-      <form @submit.prevent="onSubmit" class="flex flex-column gap-3">
+      <form
+        class="flex flex-column gap-3"
+        @submit.prevent="onSubmit">
         <div class="flex flex-column gap-2">
           <label for="name">Name</label>
-          <InputText id="name" v-model="form.name" type="text" placeholder="Training Plan Name" />
+          <InputText
+            id="name"
+            v-model="form.name"
+            type="text"
+            placeholder="Training Plan Name" />
         </div>
 
         <div class="flex flex-column gap-2">
           <label for="endDate">End Date</label>
-          <DatePicker id="endDate" v-model="form.endDate" dateFormat="yy-mm-dd" showIcon />
+          <DatePicker
+            id="endDate"
+            v-model="form.endDate"
+            dateFormat="yy-mm-dd"
+            showIcon />
         </div>
 
         <div class="flex flex-column gap-2">
           <label for="weeks">Number of Weeks</label>
-          <InputNumber id="weeks" v-model="form.weeks" show-buttons :min="1" :max="30" />
+          <InputNumber
+            id="weeks"
+            v-model="form.weeks"
+            show-buttons
+            :min="1"
+            :max="30" />
         </div>
 
-        <Button type="submit" :loading="loading" label="Submit" />
+        <Button
+          type="submit"
+          :loading="loading"
+          label="Submit" />
       </form>
     </template>
   </Card>

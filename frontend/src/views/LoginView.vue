@@ -5,20 +5,36 @@
       <template #subtitle>Log in to your account</template>
 
       <template #content>
-        <form @submit.prevent="onSubmit" class="flex flex-column gap-3">
-          <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
+        <form
+          class="flex flex-column gap-3"
+          @submit.prevent="onSubmit">
+          <Message
+            v-if="error"
+            severity="error"
+            :closable="false">{{ error }}</Message>
 
           <div class="flex flex-column gap-2">
             <label for="email">Email</label>
-            <InputText id="email" v-model="form.email" type="email" placeholder="you@example.com" />
+            <InputText
+              id="email"
+              v-model="form.email"
+              type="email"
+              placeholder="you@example.com" />
           </div>
 
           <div class="flex flex-column gap-2">
             <label for="password">Password</label>
-            <Password id="password" v-model="form.password" :feedback="false" toggleMask />
+            <Password
+              id="password"
+              v-model="form.password"
+              :feedback="false"
+              toggleMask />
           </div>
 
-          <Button type="submit" :loading="loading" label="Login" />
+          <Button
+            type="submit"
+            :loading="loading"
+            label="Login" />
         </form>
 
         <Divider />

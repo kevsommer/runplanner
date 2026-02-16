@@ -1,10 +1,16 @@
 <template>
   <div class="min-h-screen surface-ground">
     <Toast />
-    <Menubar :model="items" class="mb-4">
+    <Menubar
+      :model="items"
+      class="mb-4">
       <template #item="{ label, item }">
-        <i :class="item.icon" class="mr-2" />
-        <RouterLink :to="item.route" class="c-link p-2">
+        <i
+          :class="item.icon"
+          class="mr-2" />
+        <RouterLink
+          :to="item.route"
+          class="c-link p-2">
           {{ label }}
         </RouterLink>
       </template>
@@ -25,21 +31,21 @@ const { isAuthed } = useAuth();
 const items = computed(() =>
   isAuthed.value
     ? [
-        { label: "Dashboard", icon: "pi pi-chart-bar", route: "/dashboard" },
-        { label: "Logout", icon: "pi pi-sign-out", route: "/logout" },
-      ]
+      { label: "Dashboard", icon: "pi pi-chart-bar", route: "/dashboard" },
+      { label: "Logout", icon: "pi pi-sign-out", route: "/logout" },
+    ]
     : [
-        {
-          label: "Login",
-          icon: "pi pi-sign-in",
-          route: "/login",
-        },
-        {
-          label: "Register",
-          icon: "pi pi-user-plus",
-          route: "/register",
-        },
-      ],
+      {
+        label: "Login",
+        icon: "pi pi-sign-in",
+        route: "/login",
+      },
+      {
+        label: "Register",
+        icon: "pi pi-user-plus",
+        route: "/register",
+      },
+    ],
 );
 </script>
 

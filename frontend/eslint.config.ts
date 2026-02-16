@@ -23,4 +23,29 @@ export default defineConfigWithVueTs(
     ...pluginVitest.configs.recommended,
     files: ['src/**/__tests__/*'],
   },
+
+  {
+    name: 'app/vue-template-rules',
+    files: ['**/*.vue'],
+    rules: {
+      'vue/attributes-order': ['error'],
+      'vue/script-indent': ['error', 2, {
+        baseIndent: 0,
+        switchCase: 1,
+      }],
+      'vue/html-indent': ['error', 2, {
+        attribute: 1,
+        baseIndent: 1,
+        closeBracket: 0,
+      }],
+      'vue/first-attribute-linebreak': ['error', {
+        singleline: 'beside',
+        multiline: 'below',
+      }],
+      'vue/max-attributes-per-line': ['error', {
+        singleline: 1,
+        multiline: { max: 1 },
+      }],
+    },
+  },
 )

@@ -1,6 +1,8 @@
 <template>
   <div class="flex justify-content-center">
-    <div class="w-full" style="max-width: 900px">
+    <div
+      class="w-full"
+      style="max-width: 900px">
       <div class="flex justify-content-between align-items-center mb-4">
         <h1 class="text-2xl font-bold m-0">Your Training Plans</h1>
         <Button
@@ -14,12 +16,19 @@
       <CreateTrainingPlanForm v-if="formVisible" />
 
       <template v-else>
-        <div v-if="plans.length > 0" class="grid">
-          <div v-for="plan in plans" :key="plan.id" class="col-12 md:col-6">
+        <div
+          v-if="plans.length > 0"
+          class="grid">
+          <div
+            v-for="plan in plans"
+            :key="plan.id"
+            class="col-12 md:col-6">
             <TrainingPlanCard :plan="plan" />
           </div>
         </div>
-        <p v-else class="text-color-secondary text-center mt-5">
+        <p
+          v-else
+          class="text-color-secondary text-center mt-5">
           No training plans yet. Create one to get started!
         </p>
       </template>

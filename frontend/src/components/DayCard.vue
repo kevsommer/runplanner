@@ -17,13 +17,17 @@
         icon="pi pi-plus"
         text
         size="small"
-        @click="showForm = true"
         aria-label="Add workout"
+        @click="showForm = true"
       />
     </div>
 
-    <div v-if="workouts.length > 0" class="flex flex-column gap-2">
-      <template v-for="workout in workouts" :key="workout.id">
+    <div
+      v-if="workouts.length > 0"
+      class="flex flex-column gap-2">
+      <template
+        v-for="workout in workouts"
+        :key="workout.id">
         <EditWorkoutForm
           v-if="editingWorkoutId === workout.id"
           :workout="workout"
@@ -38,9 +42,13 @@
         />
       </template>
     </div>
-    <p v-else class="text-color-secondary text-sm mb-0">Rest day</p>
+    <p
+      v-else
+      class="text-color-secondary text-sm mb-0">Rest day</p>
 
-    <div v-if="showForm" class="mt-3">
+    <div
+      v-if="showForm"
+      class="mt-3">
       <CreateWorkoutForm
         :plan-id="planId"
         :initial-date="date"

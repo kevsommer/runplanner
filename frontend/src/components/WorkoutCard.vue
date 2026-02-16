@@ -11,7 +11,10 @@
   >
     <div class="flex justify-content-between align-items-center">
       <div>
-        <Tag :value="formatRunType(workout.runType)" :severity="runTypeSeverity(workout.runType)" class="mr-2" />
+        <Tag
+          :value="formatRunType(workout.runType)"
+          :severity="runTypeSeverity(workout.runType)"
+          class="mr-2" />
         <span
           v-if="workout.distance"
           :class="{ 'line-through': workout.status === 'completed' || workout.status === 'skipped' }"
