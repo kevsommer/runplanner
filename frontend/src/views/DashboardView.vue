@@ -32,6 +32,7 @@ import { api } from "@/api";
 import CreateTrainingPlanForm from "@/components/CreateTrainingPlanForm.vue";
 import TrainingPlanCard from "@/components/TrainingPlanCard.vue";
 import type { Plan } from "@/components/TrainingPlanCard.vue";
+import { useApi } from "@/composables/useApi";
 import Button from "primevue/button";
 import { ref } from "vue";
 
@@ -39,11 +40,12 @@ const formVisible = ref(false);
 
 const plans = ref<Plan[]>([]);
 
-function fetchTrainingPlans() {
-  api.get("/plans").then((response) => {
-    plans.value = response.data.plans;
-  });
-}
+const { exec: fetchTrainingPlans } = useApi({
+  exec: () => api.get("/plans"),
+  onSuccess: ({ data }) => {
+    plans.value = data.plans;
+  },
+});
 
 fetchTrainingPlans();
 </script>

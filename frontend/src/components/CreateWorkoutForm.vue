@@ -4,8 +4,6 @@
 
     <template #content>
       <form @submit.prevent="onSubmit" class="flex flex-column gap-3">
-        <Message v-if="error" severity="error" :closable="false" data-test="error-message">{{ error }}</Message>
-
         <div v-if="!initialDate" class="flex flex-column gap-2" data-test="day-field">
           <label for="day">Day</label>
           <DatePicker id="day" v-model="form.day" dateFormat="yy-mm-dd" showIcon />
@@ -23,13 +21,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from "vue";
+import { computed, reactive } from "vue";
 import DatePicker from "primevue/datepicker";
 import Button from "primevue/button";
 import Card from "primevue/card";
-import Message from "primevue/message";
 import WorkoutFormFields from "@/components/WorkoutFormFields.vue";
 import { api } from "@/api";
+import { useApi } from "@/composables/useApi";
 import { formatDateToYYYYMMDD } from "@/utils";
 
 const props = defineProps<{
@@ -50,31 +48,22 @@ const form = reactive({
 });
 
 const distance = computed(() => form.runType === "strength_training" ? 0 : form.distance);
-const loading = ref(false);
-const error = ref<string | null>(null);
+
+const { exec: submitWorkout, loading } = useApi({
+  exec: (payload: Record<string, any>) => api.post("/workouts/", payload),
+  successToast: "Workout created",
+  onSuccess: () => {
+    emit("created");
+  },
+});
 
 function onSubmit() {
-  const payload = {
+  submitWorkout({
     planId: props.planId,
     runType: form.runType,
     day: formatDateToYYYYMMDD(form.day),
     description: form.description,
     distance: distance.value,
-  };
-
-  loading.value = true;
-  error.value = null;
-
-  api
-    .post("/workouts/", payload)
-    .then(() => {
-      emit("created");
-    })
-    .catch(() => {
-      error.value = "Failed to create workout. Please try again.";
-    })
-    .finally(() => {
-      loading.value = false;
-    });
+  });
 }
 </script>

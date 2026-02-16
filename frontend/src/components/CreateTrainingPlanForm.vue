@@ -4,8 +4,6 @@
 
     <template #content>
       <form @submit.prevent="onSubmit" class="flex flex-column gap-3">
-        <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
-
         <div class="flex flex-column gap-2">
           <label for="name">Name</label>
           <InputText id="name" v-model="form.name" type="text" placeholder="Training Plan Name" />
@@ -32,12 +30,11 @@ import { reactive, ref } from "vue";
 import InputText from "primevue/inputtext";
 import DatePicker from "primevue/datepicker";
 import Button from "primevue/button";
-import SelectButton from "primevue/selectbutton";
 import Card from "primevue/card";
 import InputNumber from "primevue/inputnumber";
-import Message from "primevue/message";
 import { useRouter } from "vue-router";
 import { api } from "@/api";
+import { useApi } from "@/composables/useApi";
 import { formatDateToYYYYMMDD } from "@/utils";
 
 const router = useRouter();
@@ -48,22 +45,21 @@ const form = reactive({
   weeks: 10,
 });
 
-const loading = ref(false);
-const error = ref<string | null>(null);
+const payload = ref<Record<string, any>>({});
 
-async function onSubmit() {
-  loading.value = true;
-  const payload = {
+const { exec: submitPlan, loading } = useApi({
+  exec: () => api.post("/plans/", payload.value),
+  successToast: "Training plan created",
+  onSuccess: ({ data }) => {
+    router.push({ name: "plan", params: { id: data.plan.id } });
+  },
+});
+
+function onSubmit() {
+  payload.value = {
     ...form,
     endDate: formatDateToYYYYMMDD(form.endDate),
   };
-  try {
-    const { data } = await api.post("/plans/", payload);
-    router.push({ name: "plan", params: { id: data.plan.id } });
-  } catch {
-    error.value = "Failed to create training plan. Please try again.";
-  } finally {
-    loading.value = false;
-  }
+  submitPlan();
 }
 </script>

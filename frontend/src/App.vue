@@ -1,5 +1,6 @@
 <template>
   <div class="min-h-screen surface-ground">
+    <Toast />
     <Menubar :model="items" class="mb-4">
       <template #item="{ label, item }">
         <i :class="item.icon" class="mr-2" />
@@ -14,6 +15,7 @@
 
 <script setup lang="ts">
 import Menubar from "primevue/menubar";
+import Toast from "primevue/toast";
 import { computed } from "vue";
 import { RouterLink } from "vue-router";
 import { useAuth } from "./composables/useAuth";

@@ -4,8 +4,6 @@
 
     <template #content>
       <form @submit.prevent="onSubmit" class="flex flex-column gap-3">
-        <Message v-if="error" severity="error" :closable="false" data-test="error-message">{{ error }}</Message>
-
         <WorkoutFormFields :form="form" />
 
         <div class="flex gap-2">
@@ -18,12 +16,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from "vue";
+import { computed, reactive } from "vue";
 import Button from "primevue/button";
 import Card from "primevue/card";
-import Message from "primevue/message";
 import WorkoutFormFields from "@/components/WorkoutFormFields.vue";
 import { api } from "@/api";
+import { useApi } from "@/composables/useApi";
 import type { Workout } from "@/components/WorkoutCard.vue";
 
 const props = defineProps<{
@@ -43,27 +41,19 @@ const form = reactive({
 
 const distance = computed(() => form.runType === "strength_training" ? 0 : form.distance);
 
-const loading = ref(false);
-const error = ref<string | null>(null);
+const { exec: submitEdit, loading } = useApi({
+  exec: (payload: Record<string, any>) => api.put(`/workouts/${props.workout.id}`, payload),
+  successToast: "Workout updated",
+  onSuccess: () => {
+    emit("updated");
+  },
+});
 
 function onSubmit() {
-  loading.value = true;
-  error.value = null;
-
-  api
-    .put(`/workouts/${props.workout.id}`, {
-      runType: form.runType,
-      description: form.description,
-      distance: distance.value,
-    })
-    .then(() => {
-      emit("updated");
-    })
-    .catch(() => {
-      error.value = "Failed to update workout. Please try again.";
-    })
-    .finally(() => {
-      loading.value = false;
-    });
+  submitEdit({
+    runType: form.runType,
+    description: form.description,
+    distance: distance.value,
+  });
 }
 </script>

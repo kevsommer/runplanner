@@ -59,6 +59,7 @@ import EditWorkoutForm from "@/components/EditWorkoutForm.vue";
 import WorkoutCard, { type Workout } from "@/components/WorkoutCard.vue";
 import { formatDate } from "@/utils";
 import { api } from "@/api";
+import { useApi } from "@/composables/useApi";
 
 const props = defineProps<{
   dayName: string;
@@ -75,6 +76,13 @@ const emit = defineEmits<{
 const showForm = ref(false);
 const editingWorkoutId = ref<string | null>(null);
 const dragOver = ref(false);
+
+const { exec: moveWorkout } = useApi({
+  exec: (workoutId: string) => api.put(`/workouts/${workoutId}`, { day: props.date }),
+  onSuccess: () => {
+    emit("workoutUpdated");
+  },
+});
 
 function handleCreated() {
   showForm.value = false;
@@ -102,8 +110,6 @@ function onDrop(event: DragEvent) {
   dragOver.value = false;
   const workoutId = event.dataTransfer!.getData("workout-id");
   if (!workoutId) return;
-  api.put(`/workouts/${workoutId}`, { day: props.date }).then(() => {
-    emit("workoutUpdated");
-  });
+  moveWorkout(workoutId);
 }
 </script>

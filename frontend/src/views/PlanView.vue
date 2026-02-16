@@ -46,6 +46,7 @@
 <script setup lang="ts">
 import { api } from "@/api";
 import DayCard from "@/components/DayCard.vue";
+import { useApi } from "@/composables/useApi";
 import { type Workout } from "@/components/WorkoutCard.vue";
 import { formatDate, formatDateISO } from "@/utils";
 import Accordion from "primevue/accordion";
@@ -150,17 +151,19 @@ const weeks = computed<Week[]>(() => {
   return result;
 });
 
-function fetchTrainingPlan() {
-  api.get(`/plans/${planId}`).then((response) => {
-    plan.value = response.data.plan;
-  });
-}
+const { exec: fetchTrainingPlan } = useApi({
+  exec: () => api.get(`/plans/${planId}`),
+  onSuccess: ({ data }) => {
+    plan.value = data.plan;
+  },
+});
 
-function fetchWorkouts() {
-  api.get(`/plans/${planId}/workouts`).then((response) => {
-    workouts.value = response.data.workouts;
-  });
-}
+const { exec: fetchWorkouts } = useApi({
+  exec: () => api.get(`/plans/${planId}/workouts`),
+  onSuccess: ({ data }) => {
+    workouts.value = data.workouts;
+  },
+});
 
 fetchTrainingPlan();
 fetchWorkouts();
