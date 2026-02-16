@@ -1,14 +1,15 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import PrimeVue from 'primevue/config';
-import { api } from "@/tests/mocks";
+import { ToastService } from "primevue";
+import { api, toast } from "@/tests/mocks";
 import CreateWorkoutForm from "./CreateWorkoutForm.vue";
 
 function mountForm(props: { planId: string; initialDate?: string }) {
   return mount(CreateWorkoutForm, {
     props,
     global: {
-      plugins: [PrimeVue],
+      plugins: [PrimeVue, ToastService],
       stubs: {
         DatePicker: true,
       },
@@ -18,6 +19,7 @@ function mountForm(props: { planId: string; initialDate?: string }) {
 
 beforeEach(() => {
   api.post.mockReset();
+  toast.add.mockReset();
 });
 
 describe("CreateWorkoutForm", () => {
@@ -64,16 +66,19 @@ describe("CreateWorkoutForm", () => {
     expect(wrapper.emitted("created")).toHaveLength(1);
   });
 
-  it("shows error message on API failure", async () => {
+  it("shows error toast on API failure", async () => {
     api.post.mockRejectedValue(new Error("Server error"));
     const wrapper = mountForm({ planId: "plan-1", initialDate: "2026-03-15" });
 
     await wrapper.find("form").trigger("submit");
     await flushPromises();
 
-    const errorMsg = wrapper.find("[data-test='error-message']");
-    expect(errorMsg.exists()).toBe(true);
-    expect(errorMsg.text()).toContain("Failed to create workout");
+    expect(toast.add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        severity: "error",
+        detail: "Server error",
+      }),
+    );
     expect(wrapper.emitted("created")).toBeUndefined();
   });
 

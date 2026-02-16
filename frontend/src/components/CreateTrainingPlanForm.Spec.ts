@@ -1,13 +1,14 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import PrimeVue from "primevue/config";
-import { api, router } from "@/tests/mocks";
+import { ToastService } from "primevue";
+import { api, router, toast } from "@/tests/mocks";
 import CreateTrainingPlanForm from "./CreateTrainingPlanForm.vue";
 
 function mountForm() {
   return mount(CreateTrainingPlanForm, {
     global: {
-      plugins: [PrimeVue],
+      plugins: [PrimeVue, ToastService],
       stubs: {
         DatePicker: true,
       },
@@ -18,6 +19,7 @@ function mountForm() {
 beforeEach(() => {
   api.post.mockReset();
   router.push.mockReset();
+  toast.add.mockReset();
 });
 
 describe("CreateTrainingPlanForm", () => {
@@ -38,7 +40,7 @@ describe("CreateTrainingPlanForm", () => {
     });
   });
 
-  it("shows error and does not redirect on API failure", async () => {
+  it("shows error toast and does not redirect on API failure", async () => {
     api.post.mockRejectedValue(new Error("Server error"));
     const wrapper = mountForm();
 
@@ -46,6 +48,11 @@ describe("CreateTrainingPlanForm", () => {
     await flushPromises();
 
     expect(router.push).not.toHaveBeenCalled();
-    expect(wrapper.text()).toContain("Failed to create training plan");
+    expect(toast.add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        severity: "error",
+        detail: "Server error",
+      }),
+    );
   });
 });

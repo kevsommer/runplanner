@@ -17,6 +17,15 @@ vi.mock("@/api", () => ({
   },
 }));
 
+const toastAddMock = vi.fn();
+
+export const toast = {
+  add: toastAddMock,
+};
+vi.mock("primevue/usetoast", () => ({
+  useToast: () => ({ add: (...args: unknown[]) => toastAddMock(...args) }),
+}));
+
 const pushMock = vi.fn();
 
 export const router = {
