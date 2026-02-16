@@ -1,7 +1,11 @@
 <template>
   <div
     class="surface-ground border-round p-2"
-    :class="workout.status ==='completed' ? 'workout-done' : 'cursor-move'"
+    :class="{
+      'workout-done': workout.status === 'completed',
+      'workout-skipped': workout.status === 'skipped',
+      'cursor-move': workout.status === 'pending',
+    }"
     :draggable="workout.status === 'pending'"
     @dragstart="onDragStart"
   >
@@ -10,7 +14,7 @@
         <Tag :value="formatRunType(workout.runType)" :severity="runTypeSeverity(workout.runType)" class="mr-2" />
         <span
           v-if="workout.distance"
-          :class="{ 'line-through': workout.status === 'completed' }"
+          :class="{ 'line-through': workout.status === 'completed' || workout.status === 'skipped' }"
         >
           {{ workout.distance }} km
         </span>
@@ -21,6 +25,7 @@
           @click="emit('edit')"
         />
         <i
+          v-if="workout.status !== 'skipped'"
           class="pi cursor-pointer ml-2"
           :class="
             workout.status === 'completed'
@@ -28,7 +33,16 @@
               : 'pi-circle text-color-secondary'
           "
           :style="{ opacity: loading ? 0.5 : 1 }"
+          data-test="complete-button"
           @click="toggleDone"
+        />
+        <i
+          v-if=" workout.status !== 'completed'"
+          class="pi pi-forward cursor-pointer ml-2"
+          :class="workout.status === 'skipped' ? 'text-orange-500' : 'text-color-secondary'"
+          :style="{ opacity: loading ? 0.5 : 1 }"
+          data-test="skip-button"
+          @click="skipWorkout"
         />
         <i
           class="pi cursor-pointer pi-trash text-red-500 ml-2"
@@ -38,7 +52,7 @@
     <p
       v-if="workout.description"
       class="mt-1 mb-0 text-sm"
-      :class="{ 'line-through': workout.status === 'completed' }"
+      :class="{ 'line-through': workout.status === 'completed' || workout.status === 'skipped' }"
       style="white-space: pre-line"
     >
       {{ workout.description }}
@@ -87,6 +101,20 @@ function toggleDone() {
     });
 }
 
+function skipWorkout() {
+  if (loading.value) return;
+  loading.value = true;
+  const newStatus = props.workout.status === 'skipped' ? 'pending' : 'skipped';
+  api
+    .put(`/workouts/${props.workout.id}`, { status: newStatus })
+    .then(() => {
+      emit("updated");
+    })
+    .finally(() => {
+      loading.value = false;
+    });
+}
+
 function deleteWorkout() {
   if (!confirm("Are you sure you want to delete this workout?")) return;
   if (loading.value) return;
@@ -121,3 +149,10 @@ function runTypeSeverity(runType: string): string | undefined {
   return severities[runType];
 }
 </script>
+
+<style scoped>
+.workout-skipped {
+  opacity: 0.6;
+  border-left: 3px dashed var(--p-orange-500);
+}
+</style>
