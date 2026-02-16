@@ -4,13 +4,13 @@
 
     <template #content>
       <form @submit.prevent="onSubmit" class="flex flex-column gap-3">
-        <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
+        <Message v-if="error" severity="error" :closable="false" data-test="error-message">{{ error }}</Message>
 
         <WorkoutFormFields :form="form" />
 
         <div class="flex gap-2">
-          <Button type="submit" :loading="loading" label="Save" />
-          <Button type="button" label="Cancel" severity="secondary" text @click="emit('cancel')" />
+          <Button type="submit" :loading="loading" label="Save" data-test="submit-button" />
+          <Button type="button" label="Cancel" severity="secondary" text @click="emit('cancel')" data-test="cancel-button" />
         </div>
       </form>
     </template>

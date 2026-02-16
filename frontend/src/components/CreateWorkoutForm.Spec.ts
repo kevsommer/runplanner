@@ -1,12 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import PrimeVue from 'primevue/config';
+import { api } from "@/tests/mocks";
 import CreateWorkoutForm from "./CreateWorkoutForm.vue";
-
-const postMock = vi.fn();
-vi.mock("@/api", () => ({
-  api: { post: (...args: unknown[]) => postMock(...args) },
-}));
 
 function mountForm(props: { planId: string; initialDate?: string }) {
   return mount(CreateWorkoutForm, {
@@ -21,18 +17,18 @@ function mountForm(props: { planId: string; initialDate?: string }) {
 }
 
 beforeEach(() => {
-  postMock.mockReset();
+  api.post.mockReset();
 });
 
 describe("CreateWorkoutForm", () => {
   it("submits correct payload with defaults", async () => {
-    postMock.mockResolvedValue({});
+    api.post.mockResolvedValue({});
     const wrapper = mountForm({ planId: "plan-1", initialDate: "2026-03-15" });
 
     await wrapper.find("form").trigger("submit");
     await flushPromises();
 
-    expect(postMock).toHaveBeenCalledWith("/workouts/", {
+    expect(api.post).toHaveBeenCalledWith("/workouts/", {
       planId: "plan-1",
       runType: "easy_run",
       day: "2026-03-15",
@@ -42,7 +38,7 @@ describe("CreateWorkoutForm", () => {
   });
 
   it("sets distance to 0 when runType is strength_training", async () => {
-    postMock.mockResolvedValue({});
+    api.post.mockResolvedValue({});
     const wrapper = mountForm({ planId: "plan-1", initialDate: "2026-03-15" });
 
     const fields = wrapper.findComponent({ name: "WorkoutFormFields" });
@@ -52,14 +48,14 @@ describe("CreateWorkoutForm", () => {
     await wrapper.find("form").trigger("submit");
     await flushPromises();
 
-    expect(postMock).toHaveBeenCalledWith(
+    expect(api.post).toHaveBeenCalledWith(
       "/workouts/",
       expect.objectContaining({ distance: 0 }),
     );
   });
 
   it("emits 'created' on successful submission", async () => {
-    postMock.mockResolvedValue({});
+    api.post.mockResolvedValue({});
     const wrapper = mountForm({ planId: "plan-1", initialDate: "2026-03-15" });
 
     await wrapper.find("form").trigger("submit");
@@ -69,7 +65,7 @@ describe("CreateWorkoutForm", () => {
   });
 
   it("shows error message on API failure", async () => {
-    postMock.mockRejectedValue(new Error("Server error"));
+    api.post.mockRejectedValue(new Error("Server error"));
     const wrapper = mountForm({ planId: "plan-1", initialDate: "2026-03-15" });
 
     await wrapper.find("form").trigger("submit");
