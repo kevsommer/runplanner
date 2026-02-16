@@ -4,9 +4,9 @@
 
     <template #content>
       <form @submit.prevent="onSubmit" class="flex flex-column gap-3">
-        <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
+        <Message v-if="error" severity="error" :closable="false" data-test="error-message">{{ error }}</Message>
 
-        <div v-if="!initialDate" class="flex flex-column gap-2">
+        <div v-if="!initialDate" class="flex flex-column gap-2" data-test="day-field">
           <label for="day">Day</label>
           <DatePicker id="day" v-model="form.day" dateFormat="yy-mm-dd" showIcon />
         </div>
@@ -14,8 +14,8 @@
         <WorkoutFormFields :form="form" />
 
         <div class="flex gap-2">
-          <Button type="submit" :loading label="Create workout" />
-          <Button type="button" label="Cancel" severity="secondary" text @click="emit('cancel')" />
+          <Button type="submit" :loading label="Create workout" data-test="submit-button" />
+          <Button type="button" label="Cancel" severity="secondary" text @click="emit('cancel')" data-test="cancel-button" />
         </div>
       </form>
     </template>
