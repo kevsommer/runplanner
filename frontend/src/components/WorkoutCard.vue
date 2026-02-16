@@ -1,6 +1,6 @@
 <template>
   <div
-    class="surface-ground border-round p-2"
+    class="surface-ground border-round p-2 workout-card"
     :class="{
       'workout-done': workout.status === 'completed',
       'workout-skipped': workout.status === 'skipped',
@@ -21,6 +21,9 @@
         >
           {{ workout.distance }} km
         </span>
+        <i
+          v-if="workout.description"
+          class="pi pi-info-circle text-color-secondary ml-2" />
       </div>
       <div class="flex align-items-center gap-2">
         <i
@@ -54,8 +57,7 @@
     </div>
     <p
       v-if="workout.description"
-      class="mt-1 mb-0 text-sm"
-      :class="{ 'line-through': workout.status === 'completed' || workout.status === 'skipped' }"
+      class="workout-description mt-1 mb-0 text-sm text-color-secondary"
       style="white-space: pre-line"
     >
       {{ workout.description }}
@@ -154,6 +156,18 @@ function runTypeSeverity(runType: string): string | undefined {
 </script>
 
 <style scoped>
+.workout-description {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.2s ease, opacity 0.2s ease;
+}
+
+.workout-card:hover .workout-description {
+  max-height: 200px;
+  opacity: 1;
+}
+
 .workout-skipped {
   opacity: 0.6;
   border-left: 3px dashed var(--p-orange-500);

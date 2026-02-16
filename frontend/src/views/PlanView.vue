@@ -2,26 +2,27 @@
   <div class="flex justify-content-center">
     <div
       v-if="plan"
-      class="p-4 w-full md:w-8 lg:w-6">
-      <h1 class="text-3xl font-bold mb-4">{{ plan.name }}</h1>
-      <p class="text-color-secondary mb-2">
-        {{ formatDate(plan.startDate) }} - {{ formatDate(plan.endDate) }}
-      </p>
-      <p class="mb-4">Duration: {{ plan.weeks }} weeks</p>
-
-      <Select
-        v-model="selectedWeekIndex"
-        :options="weekOptions"
-        option-label="label"
-        option-value="value"
-        class="w-full mb-3"
-        @change="onWeekSelected"
-      />
+      class="w-full md:w-8 lg:w-6">
+      <div class="flex align-items-center justify-content-between mb-3 gap-3">
+        <div>
+          <h1 class="text-xl font-bold mb-1">{{ plan.name }}</h1>
+          <span class="text-color-secondary text-sm">
+            {{ formatDate(plan.startDate) }} - {{ formatDate(plan.endDate) }} · {{ plan.weeks }} weeks
+          </span>
+        </div>
+        <Select
+          v-model="selectedWeekIndex"
+          :options="weekOptions"
+          option-label="label"
+          option-value="value"
+          @change="onWeekSelected"
+        />
+      </div>
 
       <Button
-        v-if="!isFirstWeek"
         icon="pi pi-chevron-up"
         class="w-full mb-3"
+        :severity="isFirstWeek ? 'secondary' : 'primary'"
         outlined
         @click="goToPreviousWeek"
       />

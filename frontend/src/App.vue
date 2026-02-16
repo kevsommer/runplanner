@@ -1,9 +1,7 @@
 <template>
   <div class="min-h-screen surface-ground">
     <Toast />
-    <Menubar
-      :model="items"
-      class="mb-4">
+    <Menubar :model="items">
       <template #item="{ label, item }">
         <i
           :class="item.icon"
