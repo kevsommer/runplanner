@@ -16,3 +16,12 @@ vi.mock("@/api", () => ({
     delete: (...args: unknown[]) => deleteMock(...args),
   },
 }));
+
+const pushMock = vi.fn();
+
+export const router = {
+  push: pushMock,
+};
+vi.mock("vue-router", () => ({
+  useRouter: () => ({ push: (...args: unknown[]) => pushMock(...args) }),
+}));

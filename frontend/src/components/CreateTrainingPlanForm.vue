@@ -36,8 +36,11 @@ import SelectButton from "primevue/selectbutton";
 import Card from "primevue/card";
 import InputNumber from "primevue/inputnumber";
 import Message from "primevue/message";
+import { useRouter } from "vue-router";
 import { api } from "@/api";
 import { formatDateToYYYYMMDD } from "@/utils";
+
+const router = useRouter();
 
 const form = reactive({
   name: "",
@@ -48,19 +51,19 @@ const form = reactive({
 const loading = ref(false);
 const error = ref<string | null>(null);
 
-function onSubmit() {
+async function onSubmit() {
+  loading.value = true;
   const payload = {
     ...form,
     endDate: formatDateToYYYYMMDD(form.endDate),
   };
-  api
-    .post("/plans/", payload)
-    .catch(() => {
-      error.value = "Failed to create training plan. Please try again.";
-    })
-    .finally(() => {
-      loading.value = false;
-    });
-  return;
+  try {
+    const { data } = await api.post("/plans/", payload);
+    router.push({ name: "plan", params: { id: data.plan.id } });
+  } catch {
+    error.value = "Failed to create training plan. Please try again.";
+  } finally {
+    loading.value = false;
+  }
 }
 </script>
