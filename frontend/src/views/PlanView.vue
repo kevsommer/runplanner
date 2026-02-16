@@ -7,12 +7,13 @@
       </p>
       <p class="mb-4">Duration: {{ plan.weeks }} weeks</p>
 
-      <Accordion :multiple="false" :activeIndex="currentWeekIndex">
-        <AccordionTab
+      <Accordion :value="currentWeekValue">
+        <AccordionPanel
           v-for="week in weeks"
           :key="week.number"
+          :value="String(week.number - 1)"
         >
-          <template #header>
+          <AccordionHeader>
             <div class="flex align-items-center gap-2 w-full">
               <span>Week {{ week.number }}</span>
               <i v-if="week.allDone" class="pi pi-check-circle text-green-500" />
@@ -21,20 +22,22 @@
                 {{ week.doneKm.toFixed(0) }} / {{ week.plannedKm.toFixed(0) }} km
               </span>
             </div>
-          </template>
-          <div class="flex flex-column gap-3">
-            <DayCard
-              v-for="day in week.days"
-              :key="day.date"
-              :day-name="day.dayName"
-              :date="day.date"
-              :workouts="day.workouts"
-              :plan-id="String(planId)"
-              @workout-created="fetchWorkouts"
-              @workout-updated="fetchWorkouts"
-            />
-          </div>
-        </AccordionTab>
+          </AccordionHeader>
+          <AccordionContent>
+            <div class="flex flex-column gap-3">
+              <DayCard
+                v-for="day in week.days"
+                :key="day.date"
+                :day-name="day.dayName"
+                :date="day.date"
+                :workouts="day.workouts"
+                :plan-id="String(planId)"
+                @workout-created="fetchWorkouts"
+                @workout-updated="fetchWorkouts"
+              />
+            </div>
+          </AccordionContent>
+        </AccordionPanel>
       </Accordion>
     </div>
   </div>
@@ -46,7 +49,9 @@ import DayCard from "@/components/DayCard.vue";
 import { type Workout } from "@/components/WorkoutCard.vue";
 import { formatDate, formatDateISO } from "@/utils";
 import Accordion from "primevue/accordion";
-import AccordionTab from "primevue/accordiontab";
+import AccordionPanel from "primevue/accordionpanel";
+import AccordionHeader from "primevue/accordionheader";
+import AccordionContent from "primevue/accordioncontent";
 import Badge from "primevue/badge";
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
@@ -104,6 +109,10 @@ const currentWeekIndex = computed<number | null>(() => {
   if (weekIndex >= plan.value.weeks) return plan.value.weeks - 1;
 
   return weekIndex;
+});
+
+const currentWeekValue = computed<string | null>(() => {
+  return currentWeekIndex.value !== null ? String(currentWeekIndex.value) : null;
 });
 
 const weeks = computed<Week[]>(() => {
