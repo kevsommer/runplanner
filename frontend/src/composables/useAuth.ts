@@ -26,7 +26,8 @@ async function login(email: string, password: string) {
 }
 
 async function register(email: string, password: string) {
-  return api.post('/auth/register', { email, password })
+  await api.post('/auth/register', { email, password })
+  await check()
 }
 
 

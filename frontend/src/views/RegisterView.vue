@@ -93,7 +93,7 @@ async function onSubmit() {
   try {
     await register(form.email, form.password);
 
-    router.push({ name: "login" });
+    router.push({ name: "dashboard" });
   } catch (e) {
     error.value = "Registration failed. Please try again.";
   } finally {

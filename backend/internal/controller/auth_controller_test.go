@@ -54,6 +54,33 @@ func TestAuthController_Register(t *testing.T) {
 		assert.Contains(t, w.Header().Get("Set-Cookie"), "rp.sid")
 	})
 
+	t.Run("register auto-logs in user", func(t *testing.T) {
+		body := map[string]string{"email": "autologin@example.com", "password": "password123"}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+		require.Equal(t, http.StatusCreated, w.Code)
+
+		// Use the session cookie from registration to call /auth/me
+		cookies := w.Result().Cookies()
+		meReq := httptest.NewRequest(http.MethodGet, "/api/auth/me", nil)
+		for _, c := range cookies {
+			meReq.AddCookie(c)
+		}
+		meW := httptest.NewRecorder()
+		r.ServeHTTP(meW, meReq)
+
+		assert.Equal(t, http.StatusOK, meW.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(meW.Body.Bytes(), &resp))
+		user, ok := resp["user"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "autologin@example.com", user["email"])
+	})
+
 	t.Run("missing email returns 400", func(t *testing.T) {
 		body := map[string]string{"password": "password123"}
 		bodyBytes, _ := json.Marshal(body)
