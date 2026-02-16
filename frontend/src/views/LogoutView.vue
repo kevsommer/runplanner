@@ -1,5 +1,5 @@
 <template>
-  <div class="flex justify-content-center align-items-center min-h-screen surface-ground">
+  <div class="flex justify-content-center align-items-center surface-ground">
     <Card class="w-full sm:w-8 md:w-6 lg:w-4 p-4">
       <template #title>
         <h2 class="text-center">Logout</h2>
