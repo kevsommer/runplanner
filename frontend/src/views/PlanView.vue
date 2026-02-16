@@ -9,43 +9,63 @@
       </p>
       <p class="mb-4">Duration: {{ plan.weeks }} weeks</p>
 
-      <Accordion :value="currentWeekValue">
-        <AccordionPanel
-          v-for="week in plan.weeksSummary"
-          :key="week.number"
-          :value="String(week.number - 1)"
-        >
-          <AccordionHeader>
-            <div class="flex align-items-center gap-2 w-full">
-              <span>Week {{ week.number }}</span>
-              <i
-                v-if="week.allDone"
-                class="pi pi-check-circle text-green-500" />
-              <Badge
-                v-if="week.number - 1 === currentWeekIndex"
-                value="Current"
-                severity="info" />
-              <span class="ml-auto text-sm text-color-secondary px-2">
-                {{ week.doneKm.toFixed(0) }} / {{ week.plannedKm.toFixed(0) }} km
-              </span>
-            </div>
-          </AccordionHeader>
-          <AccordionContent>
-            <div class="flex flex-column gap-3">
-              <DayCard
-                v-for="day in week.days"
-                :key="day.date"
-                :day-name="day.dayName"
-                :date="day.date"
-                :workouts="day.workouts"
-                :plan-id="String(planId)"
-                @workout-created="fetchTrainingPlan"
-                @workout-updated="fetchTrainingPlan"
-              />
-            </div>
-          </AccordionContent>
-        </AccordionPanel>
-      </Accordion>
+      <Select
+        v-model="selectedWeekIndex"
+        :options="weekOptions"
+        option-label="label"
+        option-value="value"
+        class="w-full mb-3"
+        @change="onWeekSelected"
+      />
+
+      <Button
+        v-if="!isFirstWeek"
+        icon="pi pi-chevron-up"
+        class="w-full mb-3"
+        outlined
+        @click="goToPreviousWeek"
+      />
+
+      <div class="flex align-items-center gap-2 mb-3">
+        <span class="font-semibold text-lg">Week {{ selectedWeek.number }}</span>
+        <i
+          v-if="selectedWeek.allDone"
+          class="pi pi-check-circle text-green-500" />
+        <Badge
+          v-if="selectedWeekIndex === currentWeekIndex"
+          value="Current"
+          severity="info" />
+        <span class="ml-auto text-sm text-color-secondary">
+          {{ selectedWeek.doneKm.toFixed(0) }} / {{ selectedWeek.plannedKm.toFixed(0) }} km
+        </span>
+      </div>
+
+      <Transition
+        :name="slideDirection === 'up' ? 'slide-up' : 'slide-down'"
+        mode="out-in">
+        <div
+          :key="selectedWeekIndex"
+          class="flex flex-column gap-3">
+          <DayCard
+            v-for="day in selectedWeek.days"
+            :key="day.date"
+            :day-name="day.dayName"
+            :date="day.date"
+            :workouts="day.workouts"
+            :plan-id="String(planId)"
+            @workout-created="fetchTrainingPlan"
+            @workout-updated="fetchTrainingPlan"
+          />
+        </div>
+      </Transition>
+
+      <Button
+        v-if="!isLastWeek"
+        icon="pi pi-chevron-down"
+        class="w-full mt-3"
+        outlined
+        @click="goToNextWeek"
+      />
     </div>
   </div>
 </template>
@@ -56,10 +76,8 @@ import DayCard from "@/components/DayCard.vue";
 import { useApi } from "@/composables/useApi";
 import { type Workout } from "@/components/WorkoutCard.vue";
 import { formatDate } from "@/utils";
-import Accordion from "primevue/accordion";
-import AccordionPanel from "primevue/accordionpanel";
-import AccordionHeader from "primevue/accordionheader";
-import AccordionContent from "primevue/accordioncontent";
+import Select from "primevue/select";
+import Button from "primevue/button";
 import Badge from "primevue/badge";
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
@@ -90,6 +108,9 @@ type Plan = {
 };
 
 const plan = ref<Plan>();
+const selectedWeekIndex = ref(0);
+const slideDirection = ref<"up" | "down">("up");
+const initialLoadDone = ref(false);
 
 const planId = router.currentRoute.value.params.id;
 
@@ -109,16 +130,82 @@ const currentWeekIndex = computed<number | null>(() => {
   return weekIndex;
 });
 
-const currentWeekValue = computed<string | null>(() => {
-  return currentWeekIndex.value !== null ? String(currentWeekIndex.value) : null;
+const selectedWeek = computed<WeekSummary>(() => {
+  return plan.value!.weeksSummary[selectedWeekIndex.value];
 });
+
+const weekOptions = computed(() => {
+  if (!plan.value) return [];
+  return plan.value.weeksSummary.map((week, index) => ({
+    label: `Week ${week.number}`,
+    value: index,
+  }));
+});
+
+const isFirstWeek = computed(() => selectedWeekIndex.value === 0);
+
+const isLastWeek = computed(() => {
+  if (!plan.value) return true;
+  return selectedWeekIndex.value === plan.value.weeksSummary.length - 1;
+});
+
+function goToPreviousWeek() {
+  if (isFirstWeek.value) return;
+  slideDirection.value = "down";
+  selectedWeekIndex.value--;
+}
+
+function goToNextWeek() {
+  if (isLastWeek.value) return;
+  slideDirection.value = "up";
+  selectedWeekIndex.value++;
+}
+
+function onWeekSelected(event: { value: number }) {
+  const newIndex = event.value;
+  slideDirection.value = newIndex > selectedWeekIndex.value ? "up" : "down";
+  selectedWeekIndex.value = newIndex;
+}
 
 const { exec: fetchTrainingPlan } = useApi({
   exec: () => api.get(`/plans/${planId}`),
   onSuccess: ({ data }) => {
     plan.value = data.plan;
+    if (!initialLoadDone.value) {
+      initialLoadDone.value = true;
+      selectedWeekIndex.value = currentWeekIndex.value ?? 0;
+    }
   },
 });
 
 fetchTrainingPlan();
 </script>
+
+<style scoped>
+.slide-up-enter-active,
+.slide-up-leave-active,
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-up-enter-from {
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(-30px);
+}
+
+.slide-down-enter-from {
+  opacity: 0;
+  transform: translateY(-30px);
+}
+
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(30px);
+}
+</style>
