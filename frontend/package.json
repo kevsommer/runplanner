@@ -18,6 +18,7 @@
   "dependencies": {
     "@primevue/themes": "^4.3.9",
     "axios": "^1.12.2",
+    "mobile-drag-drop": "^3.0.0-rc.0",
     "pinia": "^3.0.3",
     "primeflex": "^4.0.0",
     "primeicons": "^7.0.0",

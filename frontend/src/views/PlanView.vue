@@ -1,5 +1,5 @@
 <template>
-  <div class="flex justify-content-center">
+  <div class="flex justify-content-center p-3 md:p-4">
     <div
       v-if="plan"
       class="w-full md:w-8 lg:w-6">
