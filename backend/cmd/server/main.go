@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -51,8 +52,14 @@ func main() {
 	workoutSvc := service.NewWorkoutService(workoutStore)
 
 	r := gin.Default()
+	allowedOrigins := []string{"http://localhost:5173", "http://127.0.0.1:5173"}
+	if extra := os.Getenv("CORS_ORIGINS"); extra != "" {
+		for _, o := range strings.Split(extra, ",") {
+			allowedOrigins = append(allowedOrigins, strings.TrimSpace(o))
+		}
+	}
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://127.0.0.1:5173"},
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length"},
