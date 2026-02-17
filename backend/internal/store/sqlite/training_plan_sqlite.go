@@ -78,6 +78,39 @@ func scanTrainingPlan(row *sql.Row) (*model.TrainingPlan, error) {
 	}, nil
 }
 
+func (s *TrainingPlanStore) Update(plan *model.TrainingPlan) error {
+	res, err := s.db.Exec(
+		`UPDATE training_plans SET name = ?, end_date = ?, weeks = ?, start_date = ? WHERE id = ?`,
+		plan.Name, plan.EndDate.Format(dateFormat), plan.Weeks, plan.StartDate.Format(dateFormat), plan.ID,
+	)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return store.ErrNotFound
+	}
+	return nil
+}
+
+func (s *TrainingPlanStore) Delete(id model.TrainingPlanID) error {
+	res, err := s.db.Exec(`DELETE FROM training_plans WHERE id = ?`, id)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return store.ErrNotFound
+	}
+	return nil
+}
+
 func scanTrainingPlanFromRows(rows *sql.Rows) (*model.TrainingPlan, error) {
 	var id, uid, name, endDateStr, startDateStr string
 	var weeks int

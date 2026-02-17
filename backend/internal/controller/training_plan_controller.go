@@ -32,6 +32,8 @@ func RegisterTrainingPlanRoutes(rg *gin.RouterGroup, svc *service.TrainingPlanSe
 		plans.POST("/", tc.postCreate)
 		plans.GET("/", tc.getByUserID)
 		plans.GET("/:id", tc.getByID)
+		plans.PUT("/:id", tc.putUpdate)
+		plans.DELETE("/:id", tc.deletePlan)
 	}
 }
 
@@ -92,6 +94,81 @@ func (t *TrainingPlanController) getByID(c *gin.Context) {
 	}
 	detail := service.BuildPlanDetail(plan, workouts)
 	c.JSON(http.StatusOK, gin.H{"plan": detail})
+}
+
+type updatePlanInput struct {
+	Name    string `json:"name" binding:"required"`
+	EndDate string `json:"endDate" binding:"required"`
+	Weeks   int    `json:"weeks" binding:"required"`
+}
+
+func (t *TrainingPlanController) putUpdate(c *gin.Context) {
+	uid := currentUserID(c)
+	id := model.TrainingPlanID(c.Param("id"))
+
+	plan, err := t.svc.GetByID(id)
+	if err != nil {
+		if err == store.ErrNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "plan not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get plan"})
+		return
+	}
+	if plan.UserID != model.UserID(uid) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "plan not found"})
+		return
+	}
+
+	var req updatePlanInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name, endDate and weeks are required"})
+		return
+	}
+	endDate, err := time.Parse("2006-01-02", req.EndDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "endDate must be YYYY-MM-DD"})
+		return
+	}
+
+	updated, err := t.svc.Update(id, req.Name, endDate, req.Weeks)
+	if err != nil {
+		switch err {
+		case service.ErrInvalidName:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
+		case service.ErrInvalidWeeks:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "weeks must be at least 1"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update plan"})
+		}
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"plan": updated})
+}
+
+func (t *TrainingPlanController) deletePlan(c *gin.Context) {
+	uid := currentUserID(c)
+	id := model.TrainingPlanID(c.Param("id"))
+
+	plan, err := t.svc.GetByID(id)
+	if err != nil {
+		if err == store.ErrNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "plan not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get plan"})
+		return
+	}
+	if plan.UserID != model.UserID(uid) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "plan not found"})
+		return
+	}
+
+	if err := t.svc.Delete(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete plan"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"deleted": true})
 }
 
 func (t *TrainingPlanController) getByUserID(c *gin.Context) {

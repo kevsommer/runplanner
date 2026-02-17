@@ -225,6 +225,180 @@ func TestTrainingPlanController_GetByID_WithWorkouts(t *testing.T) {
 	})
 }
 
+func TestTrainingPlanController_Update(t *testing.T) {
+	r, authSvc, planSvc, _ := setupPlansTestRouter(t)
+	u, _ := authSvc.Register("update@example.com", "password123")
+	plan, _ := planSvc.Create(u.ID, "Original Plan", mustParseDate("2025-06-15"), 8)
+
+	body := map[string]string{"email": "update@example.com", "password": "password123"}
+	bodyBytes, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	cookies := w.Result().Cookies()
+
+	t.Run("updates plan fields", func(t *testing.T) {
+		body := map[string]interface{}{"name": "Updated Plan", "endDate": "2025-07-20", "weeks": 12}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPut, "/api/plans/"+string(plan.ID), bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		p := resp["plan"].(map[string]interface{})
+		assert.Equal(t, "Updated Plan", p["name"])
+		assert.Contains(t, p["endDate"], "2025-07-20")
+		assert.Equal(t, float64(12), p["weeks"])
+	})
+
+	t.Run("returns 404 for unknown plan", func(t *testing.T) {
+		body := map[string]interface{}{"name": "X", "endDate": "2025-07-20", "weeks": 8}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPut, "/api/plans/nonexistent", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("returns 404 for other user's plan", func(t *testing.T) {
+		other, _ := authSvc.Register("other-update@example.com", "password123")
+		otherPlan, _ := planSvc.Create(other.ID, "Other Plan", mustParseDate("2025-06-15"), 8)
+
+		body := map[string]interface{}{"name": "Hacked", "endDate": "2025-07-20", "weeks": 8}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPut, "/api/plans/"+string(otherPlan.ID), bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("returns 400 for invalid endDate", func(t *testing.T) {
+		body := map[string]interface{}{"name": "Plan", "endDate": "not-a-date", "weeks": 8}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPut, "/api/plans/"+string(plan.ID), bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("returns 400 for missing fields", func(t *testing.T) {
+		body := map[string]interface{}{"name": "Plan"}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPut, "/api/plans/"+string(plan.ID), bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("unauthenticated returns 401", func(t *testing.T) {
+		body := map[string]interface{}{"name": "Plan", "endDate": "2025-07-20", "weeks": 8}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPut, "/api/plans/"+string(plan.ID), bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+}
+
+func TestTrainingPlanController_Delete(t *testing.T) {
+	r, authSvc, planSvc, _ := setupPlansTestRouter(t)
+	u, _ := authSvc.Register("delete@example.com", "password123")
+	plan, _ := planSvc.Create(u.ID, "To Delete", mustParseDate("2025-06-15"), 8)
+
+	body := map[string]string{"email": "delete@example.com", "password": "password123"}
+	bodyBytes, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	cookies := w.Result().Cookies()
+
+	t.Run("deletes plan", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, "/api/plans/"+string(plan.ID), nil)
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		assert.Equal(t, true, resp["deleted"])
+
+		// Verify plan is gone
+		req = httptest.NewRequest(http.MethodGet, "/api/plans/"+string(plan.ID), nil)
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("returns 404 for unknown plan", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, "/api/plans/nonexistent", nil)
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("returns 404 for other user's plan", func(t *testing.T) {
+		other, _ := authSvc.Register("other-delete@example.com", "password123")
+		otherPlan, _ := planSvc.Create(other.ID, "Other Plan", mustParseDate("2025-06-15"), 8)
+
+		req := httptest.NewRequest(http.MethodDelete, "/api/plans/"+string(otherPlan.ID), nil)
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("unauthenticated returns 401", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, "/api/plans/some-id", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+}
+
 func TestTrainingPlanController_GetByUserID(t *testing.T) {
 	r, authSvc, planSvc, _ := setupPlansTestRouter(t)
 	u, _ := authSvc.Register("get@example.com", "password123")

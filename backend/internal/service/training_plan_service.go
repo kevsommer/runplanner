@@ -149,6 +149,31 @@ func BuildPlanDetail(plan *model.TrainingPlan, workouts []*model.Workout) *PlanD
 	}
 }
 
+func (s *TrainingPlanService) Update(id model.TrainingPlanID, name string, endDate time.Time, weeks int) (*model.TrainingPlan, error) {
+	if name == "" {
+		return nil, ErrInvalidName
+	}
+	if weeks < 1 {
+		return nil, ErrInvalidWeeks
+	}
+	plan, err := s.plans.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	plan.Name = name
+	plan.EndDate = endDate
+	plan.Weeks = weeks
+	plan.StartDate = StartDateFor(endDate, weeks)
+	if err := s.plans.Update(plan); err != nil {
+		return nil, err
+	}
+	return plan, nil
+}
+
+func (s *TrainingPlanService) Delete(id model.TrainingPlanID) error {
+	return s.plans.Delete(id)
+}
+
 func (s *TrainingPlanService) GetByUserID(userID model.UserID) ([]*model.TrainingPlan, error) {
 	return s.plans.GetByUserID(userID)
 }

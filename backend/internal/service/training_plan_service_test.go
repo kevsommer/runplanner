@@ -174,6 +174,71 @@ func TestBuildPlanDetail(t *testing.T) {
 	})
 }
 
+func TestTrainingPlanService_Update(t *testing.T) {
+	svc := setupTrainingPlanTest(t)
+	userID := model.UserID("user-1")
+	endDate := time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC)
+	created, err := svc.Create(userID, "Original Plan", endDate, 8)
+	require.NoError(t, err)
+
+	t.Run("updates name, endDate, and weeks", func(t *testing.T) {
+		newEnd := time.Date(2025, 7, 20, 0, 0, 0, 0, time.UTC)
+		updated, err := svc.Update(created.ID, "Updated Plan", newEnd, 12)
+		require.NoError(t, err)
+		assert.Equal(t, created.ID, updated.ID)
+		assert.Equal(t, "Updated Plan", updated.Name)
+		assert.Equal(t, newEnd, updated.EndDate)
+		assert.Equal(t, 12, updated.Weeks)
+		assert.Equal(t, time.Monday, updated.StartDate.Weekday())
+		assert.Equal(t, StartDateFor(newEnd, 12), updated.StartDate)
+	})
+
+	t.Run("persists the update", func(t *testing.T) {
+		fetched, err := svc.GetByID(created.ID)
+		require.NoError(t, err)
+		assert.Equal(t, "Updated Plan", fetched.Name)
+	})
+
+	t.Run("empty name returns ErrInvalidName", func(t *testing.T) {
+		plan, err := svc.Update(created.ID, "", time.Now(), 8)
+		assert.Equal(t, ErrInvalidName, err)
+		assert.Nil(t, plan)
+	})
+
+	t.Run("weeks < 1 returns ErrInvalidWeeks", func(t *testing.T) {
+		plan, err := svc.Update(created.ID, "Plan", time.Now(), 0)
+		assert.Equal(t, ErrInvalidWeeks, err)
+		assert.Nil(t, plan)
+	})
+
+	t.Run("unknown id returns ErrNotFound", func(t *testing.T) {
+		plan, err := svc.Update("nonexistent", "Plan", time.Now(), 8)
+		assert.Equal(t, store.ErrNotFound, err)
+		assert.Nil(t, plan)
+	})
+}
+
+func TestTrainingPlanService_Delete(t *testing.T) {
+	svc := setupTrainingPlanTest(t)
+	userID := model.UserID("user-1")
+	created, err := svc.Create(userID, "To Delete", time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC), 8)
+	require.NoError(t, err)
+
+	t.Run("deletes existing plan", func(t *testing.T) {
+		err := svc.Delete(created.ID)
+		require.NoError(t, err)
+
+		plan, err := svc.GetByID(created.ID)
+		assert.Equal(t, store.ErrNotFound, err)
+		assert.Nil(t, plan)
+	})
+
+	t.Run("unknown id returns ErrNotFound", func(t *testing.T) {
+		err := svc.Delete("nonexistent")
+		assert.Equal(t, store.ErrNotFound, err)
+	})
+}
+
 func TestTrainingPlanService_GetByUserID(t *testing.T) {
 	svc := setupTrainingPlanTest(t)
 	userID := model.UserID("user-2")
