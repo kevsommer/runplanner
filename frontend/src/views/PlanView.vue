@@ -19,15 +19,14 @@
         />
       </div>
 
-      <Button
-        icon="pi pi-chevron-up"
-        class="w-full mb-3"
-        :severity="isFirstWeek ? 'secondary' : 'primary'"
-        outlined
-        @click="goToPreviousWeek"
-      />
-
       <div class="flex align-items-center gap-2 mb-3">
+        <Button
+          icon="pi pi-chevron-left"
+          class="px-4"
+          :severity="isFirstWeek ? 'secondary' : 'primary'"
+          outlined
+          @click="goToPreviousWeek"
+        />
         <span class="font-semibold text-lg">Week {{ selectedWeek.number }}</span>
         <i
           v-if="selectedWeek.allDone"
@@ -39,6 +38,13 @@
         <span class="ml-auto text-sm text-color-secondary">
           {{ selectedWeek.doneKm.toFixed(0) }} / {{ selectedWeek.plannedKm.toFixed(0) }} km
         </span>
+        <Button
+          icon="pi pi-chevron-right"
+          class="px-4"
+          :severity="isLastWeek ? 'secondary' : 'primary'"
+          outlined
+          @click="goToNextWeek"
+        />
       </div>
 
       <Transition
@@ -60,13 +66,6 @@
         </div>
       </Transition>
 
-      <Button
-        v-if="!isLastWeek"
-        icon="pi pi-chevron-down"
-        class="w-full mt-3"
-        outlined
-        @click="goToNextWeek"
-      />
     </div>
   </div>
 </template>

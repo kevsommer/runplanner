@@ -21,9 +21,6 @@
         >
           {{ workout.distance }} km
         </span>
-        <i
-          v-if="workout.description"
-          class="pi pi-info-circle text-color-secondary ml-2" />
       </div>
       <div class="flex align-items-center gap-2">
         <i
@@ -57,7 +54,7 @@
     </div>
     <p
       v-if="workout.description"
-      class="workout-description mt-1 mb-0 text-sm text-color-secondary"
+      class="mt-1 mb-0 text-sm text-color-secondary"
       style="white-space: pre-line"
     >
       {{ workout.description }}
@@ -66,9 +63,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed } from "vue";
 import Tag from "primevue/tag";
 import { api } from "@/api";
+import { useApi } from "@/composables/useApi";
 
 export type Workout = {
   id: string;
@@ -90,48 +88,39 @@ const emit = defineEmits<{
   (e: "edit"): void;
 }>();
 
-const loading = ref(false);
+const { exec: toggleDoneExec, loading: toggleDoneLoading } = useApi({
+  exec: (newStatus: string) => api.put(`/workouts/${props.workout.id}`, { status: newStatus }),
+  onSuccess: () => emit("updated"),
+});
+
+const { exec: skipExec, loading: skipLoading } = useApi({
+  exec: (newStatus: string) => api.put(`/workouts/${props.workout.id}`, { status: newStatus }),
+  onSuccess: () => emit("updated"),
+});
+
+const { exec: deleteExec, loading: deleteLoading } = useApi({
+  exec: () => api.delete(`/workouts/${props.workout.id}`),
+  onSuccess: () => emit("updated"),
+});
+
+const loading = computed(() => toggleDoneLoading.value || skipLoading.value || deleteLoading.value);
 
 function toggleDone() {
   if (loading.value) return;
-  loading.value = true;
   const newStatus = props.workout.status === 'pending' ? 'completed' : 'pending';
-  api
-    .put(`/workouts/${props.workout.id}`, { status: newStatus})
-    .then(() => {
-      emit("updated");
-    })
-    .finally(() => {
-      loading.value = false;
-    });
+  toggleDoneExec(newStatus);
 }
 
 function skipWorkout() {
   if (loading.value) return;
-  loading.value = true;
   const newStatus = props.workout.status === 'skipped' ? 'pending' : 'skipped';
-  api
-    .put(`/workouts/${props.workout.id}`, { status: newStatus })
-    .then(() => {
-      emit("updated");
-    })
-    .finally(() => {
-      loading.value = false;
-    });
+  skipExec(newStatus);
 }
 
 function deleteWorkout() {
   if (!confirm("Are you sure you want to delete this workout?")) return;
   if (loading.value) return;
-  loading.value = true;
-  api
-    .delete(`/workouts/${props.workout.id}`)
-    .then(() => {
-      emit("updated");
-    })
-    .finally(() => {
-      loading.value = false;
-    });
+  deleteExec();
 }
 
 function onDragStart(event: DragEvent) {
@@ -156,18 +145,6 @@ function runTypeSeverity(runType: string): string | undefined {
 </script>
 
 <style scoped>
-.workout-description {
-  max-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  transition: max-height 0.2s ease, opacity 0.2s ease;
-}
-
-.workout-card:hover .workout-description {
-  max-height: 200px;
-  opacity: 1;
-}
-
 .workout-skipped {
   opacity: 0.6;
   border-left: 3px dashed var(--p-orange-500);
