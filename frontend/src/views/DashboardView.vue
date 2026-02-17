@@ -1,37 +1,40 @@
 <template>
-  <div class="flex justify-content-center">
+  <div class="flex justify-content-center p-4">
     <div
       class="w-full"
       style="max-width: 900px">
       <div class="flex justify-content-between align-items-center mb-4">
         <h1 class="text-2xl font-bold m-0">Your Training Plans</h1>
         <Button
-          v-if="!formVisible"
           label="Create Training Plan"
           icon="pi pi-plus"
           @click="formVisible = true"
         />
       </div>
 
-      <CreateTrainingPlanForm v-if="formVisible" />
-
-      <template v-else>
+      <div
+        v-if="plans.length > 0"
+        class="grid">
         <div
-          v-if="plans.length > 0"
-          class="grid">
-          <div
-            v-for="plan in plans"
-            :key="plan.id"
-            class="col-12 md:col-6">
-            <TrainingPlanCard :plan="plan" />
-          </div>
+          v-for="plan in plans"
+          :key="plan.id"
+          class="col-12 md:col-6">
+          <TrainingPlanCard :plan="plan" />
         </div>
-        <p
-          v-else
-          class="text-color-secondary text-center mt-5">
-          No training plans yet. Create one to get started!
-        </p>
-      </template>
+      </div>
+      <p
+        v-else
+        class="text-color-secondary text-center mt-5">
+        No training plans yet. Create one to get started!
+      </p>
+
+      <Dialog
+        v-model:visible="formVisible"
+        header="Create Training Plan"
+        modal
+        class="w-full md:w-8 lg:w-5">
+        <CreateTrainingPlanForm />
+      </Dialog>
     </div>
   </div>
 </template>
@@ -43,6 +46,7 @@ import TrainingPlanCard from "@/components/TrainingPlanCard.vue";
 import type { Plan } from "@/components/TrainingPlanCard.vue";
 import { useApi } from "@/composables/useApi";
 import Button from "primevue/button";
+import Dialog from "primevue/dialog";
 import { ref } from "vue";
 
 const formVisible = ref(false);
