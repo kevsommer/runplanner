@@ -25,43 +25,50 @@
     <div
       v-if="workouts.length > 0"
       class="flex flex-column gap-2">
-      <template
+      <WorkoutCard
         v-for="workout in workouts"
-        :key="workout.id">
-        <EditWorkoutForm
-          v-if="editingWorkoutId === workout.id"
-          :workout="workout"
-          @updated="handleWorkoutUpdated"
-          @cancel="editingWorkoutId = null"
-        />
-        <WorkoutCard
-          v-else
-          :workout="workout"
-          @updated="emit('workoutUpdated')"
-          @edit="editingWorkoutId = workout.id"
-        />
-      </template>
+        :key="workout.id"
+        :workout="workout"
+        @updated="emit('workoutUpdated')"
+        @edit="editingWorkoutId = workout.id"
+      />
     </div>
     <p
       v-else
       class="text-color-secondary text-sm mb-0">Rest day</p>
 
-    <div
-      v-if="showForm"
-      class="mt-3">
+    <Dialog
+      v-model:visible="showForm"
+      header="Add workout"
+      modal
+      class="w-full md:w-6 lg:w-4">
       <CreateWorkoutForm
         :plan-id="planId"
         :initial-date="date"
         @created="handleCreated"
         @cancel="showForm = false"
       />
-    </div>
+    </Dialog>
+
+    <Dialog
+      v-model:visible="showEditForm"
+      header="Edit workout"
+      modal
+      class="w-full md:w-6 lg:w-4">
+      <EditWorkoutForm
+        v-if="editingWorkout"
+        :workout="editingWorkout"
+        @updated="handleWorkoutUpdated"
+        @cancel="editingWorkoutId = null"
+      />
+    </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import Button from "primevue/button";
+import Dialog from "primevue/dialog";
 import CreateWorkoutForm from "@/components/CreateWorkoutForm.vue";
 import EditWorkoutForm from "@/components/EditWorkoutForm.vue";
 import WorkoutCard, { type Workout } from "@/components/WorkoutCard.vue";
@@ -84,6 +91,15 @@ const emit = defineEmits<{
 const showForm = ref(false);
 const editingWorkoutId = ref<string | null>(null);
 const dragOver = ref(false);
+
+const editingWorkout = computed(() =>
+  props.workouts.find((w) => w.id === editingWorkoutId.value) ?? null
+);
+
+const showEditForm = computed({
+  get: () => editingWorkoutId.value !== null,
+  set: (val: boolean) => { if (!val) editingWorkoutId.value = null; },
+});
 
 const { exec: moveWorkout } = useApi({
   exec: (workoutId: string) => api.put(`/workouts/${workoutId}`, { day: props.date }),

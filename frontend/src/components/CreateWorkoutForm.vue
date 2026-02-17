@@ -1,49 +1,42 @@
 <template>
-  <Card class="w-full md:w-6 lg:w-4">
-    <template #title>Add workout</template>
+  <form
+    class="flex flex-column gap-3 w-full"
+    @submit.prevent="onSubmit">
+    <div
+      v-if="!initialDate"
+      class="flex flex-column gap-2"
+      data-test="day-field">
+      <label for="day">Day</label>
+      <DatePicker
+        id="day"
+        v-model="form.day"
+        dateFormat="yy-mm-dd"
+        showIcon />
+    </div>
 
-    <template #content>
-      <form
-        class="flex flex-column gap-3"
-        @submit.prevent="onSubmit">
-        <div
-          v-if="!initialDate"
-          class="flex flex-column gap-2"
-          data-test="day-field">
-          <label for="day">Day</label>
-          <DatePicker
-            id="day"
-            v-model="form.day"
-            dateFormat="yy-mm-dd"
-            showIcon />
-        </div>
+    <WorkoutFormFields :form="form" />
 
-        <WorkoutFormFields :form="form" />
-
-        <div class="flex gap-2">
-          <Button
-            type="submit"
-            :loading
-            label="Create workout"
-            data-test="submit-button" />
-          <Button
-            type="button"
-            label="Cancel"
-            severity="secondary"
-            text
-            data-test="cancel-button"
-            @click="emit('cancel')" />
-        </div>
-      </form>
-    </template>
-  </Card>
+    <div class="flex gap-2 justify-content-end">
+      <Button
+        type="button"
+        label="Cancel"
+        severity="secondary"
+        text
+        data-test="cancel-button"
+        @click="emit('cancel')" />
+      <Button
+        type="submit"
+        :loading
+        label="Create workout"
+        data-test="submit-button" />
+    </div>
+  </form>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive } from "vue";
 import DatePicker from "primevue/datepicker";
 import Button from "primevue/button";
-import Card from "primevue/card";
 import WorkoutFormFields from "@/components/WorkoutFormFields.vue";
 import { api } from "@/api";
 import { useApi } from "@/composables/useApi";

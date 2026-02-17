@@ -1,36 +1,29 @@
 <template>
-  <Card class="w-full">
-    <template #title>Edit workout</template>
+  <form
+    class="flex flex-column gap-3 w-full"
+    @submit.prevent="onSubmit">
+    <WorkoutFormFields :form="form" />
 
-    <template #content>
-      <form
-        class="flex flex-column gap-3"
-        @submit.prevent="onSubmit">
-        <WorkoutFormFields :form="form" />
-
-        <div class="flex gap-2">
-          <Button
-            type="submit"
-            :loading="loading"
-            label="Save"
-            data-test="submit-button" />
-          <Button
-            type="button"
-            label="Cancel"
-            severity="secondary"
-            text
-            data-test="cancel-button"
-            @click="emit('cancel')" />
-        </div>
-      </form>
-    </template>
-  </Card>
+    <div class="flex gap-2 justify-content-end">
+      <Button
+        type="button"
+        label="Cancel"
+        severity="secondary"
+        text
+        data-test="cancel-button"
+        @click="emit('cancel')" />
+      <Button
+        type="submit"
+        :loading="loading"
+        label="Save"
+        data-test="submit-button" />
+    </div>
+  </form>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive } from "vue";
 import Button from "primevue/button";
-import Card from "primevue/card";
 import WorkoutFormFields from "@/components/WorkoutFormFields.vue";
 import { api } from "@/api";
 import { useApi } from "@/composables/useApi";
