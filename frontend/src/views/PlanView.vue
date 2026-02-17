@@ -19,6 +19,13 @@
         />
       </div>
 
+      <WeeklyKmChart
+        :weeks-summary="plan.weeksSummary"
+        :current-week-index="currentWeekIndex"
+        class="mb-3"
+        @week-selected="onChartWeekSelected"
+      />
+
       <div class="flex align-items-center gap-2 mb-3">
         <Button
           icon="pi pi-chevron-left"
@@ -73,6 +80,7 @@
 <script setup lang="ts">
 import { api } from "@/api";
 import DayCard from "@/components/DayCard.vue";
+import WeeklyKmChart from "@/components/WeeklyKmChart.vue";
 import { useApi } from "@/composables/useApi";
 import { type Workout } from "@/components/WorkoutCard.vue";
 import { formatDate } from "@/utils";
@@ -165,6 +173,11 @@ function onWeekSelected(event: { value: number }) {
   const newIndex = event.value;
   slideDirection.value = newIndex > selectedWeekIndex.value ? "up" : "down";
   selectedWeekIndex.value = newIndex;
+}
+
+function onChartWeekSelected(index: number) {
+  slideDirection.value = index > selectedWeekIndex.value ? "up" : "down";
+  selectedWeekIndex.value = index;
 }
 
 const { exec: fetchTrainingPlan } = useApi({
