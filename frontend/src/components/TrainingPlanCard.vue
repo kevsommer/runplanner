@@ -5,10 +5,22 @@
   >
     <div class="flex justify-content-between align-items-start mb-3">
       <h3 class="text-xl font-bold m-0">{{ plan.name }}</h3>
-      <Badge
-        v-if="isActive"
-        :value="`Week ${currentWeek}`"
-        severity="info" />
+      <div class="flex align-items-center gap-2">
+        <Badge
+          v-if="isActive"
+          :value="`Week ${currentWeek}`"
+          severity="info" />
+        <Button
+          icon="pi pi-trash"
+          severity="danger"
+          text
+          rounded
+          size="small"
+          class="delete-btn"
+          aria-label="Delete plan"
+          @click.stop="deletePlan"
+        />
+      </div>
     </div>
 
     <div class="flex flex-column gap-2 text-color-secondary text-sm mb-3">
@@ -40,14 +52,17 @@
 </template>
 
 <script setup lang="ts">
+import { api } from "@/api";
+import { useApi } from "@/composables/useApi";
 import Badge from "primevue/badge";
+import Button from "primevue/button";
 import ProgressBar from "primevue/progressbar";
 import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { formatDate } from "@/utils";
 
 export type Plan = {
-  id: number;
+  id: string;
   name: string;
   startDate: string;
   endDate: string;
@@ -58,7 +73,22 @@ const props = defineProps<{
   plan: Plan;
 }>();
 
+const emit = defineEmits<{
+  (e: "deleted"): void;
+}>();
+
 const router = useRouter();
+
+const { exec: deleteExec, loading: deleteLoading } = useApi({
+  exec: () => api.delete(`/plans/${props.plan.id}`),
+  onSuccess: () => emit("deleted"),
+});
+
+function deletePlan() {
+  if (!confirm("Are you sure you want to delete this training plan?")) return;
+  if (deleteLoading.value) return;
+  deleteExec();
+}
 
 const today = new Date();
 

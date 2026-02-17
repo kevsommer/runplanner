@@ -7,6 +7,7 @@ import (
 	"github.com/kevsommer/runplanner/internal/model"
 	"github.com/kevsommer/runplanner/internal/store"
 	"github.com/kevsommer/runplanner/internal/store/mem"
+	sqliteStore "github.com/kevsommer/runplanner/internal/store/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -237,6 +238,63 @@ func TestTrainingPlanService_Delete(t *testing.T) {
 		err := svc.Delete("nonexistent")
 		assert.Equal(t, store.ErrNotFound, err)
 	})
+}
+
+func setupSQLiteTestDB(t *testing.T) (*TrainingPlanService, store.WorkoutStore) {
+	t.Helper()
+	db, err := sqliteStore.Open("file::memory:?cache=shared")
+	require.NoError(t, err)
+	t.Cleanup(func() { db.Close() })
+
+	_, err = db.Exec(`PRAGMA foreign_keys = ON`)
+	require.NoError(t, err)
+	_, err = db.Exec(`CREATE TABLE users (id TEXT PRIMARY KEY)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`CREATE TABLE training_plans (
+		id TEXT PRIMARY KEY,
+		user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		name TEXT NOT NULL, end_date TEXT NOT NULL, weeks INTEGER NOT NULL,
+		start_date TEXT NOT NULL, created_at TIMESTAMP NOT NULL)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`CREATE TABLE workouts (
+		id TEXT PRIMARY KEY,
+		plan_id TEXT NOT NULL REFERENCES training_plans(id) ON DELETE CASCADE,
+		runType TEXT NOT NULL, day TEXT NOT NULL, description TEXT NOT NULL,
+		notes TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'pending',
+		distance REAL NOT NULL)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO users (id) VALUES ('user-1')`)
+	require.NoError(t, err)
+
+	planStore := sqliteStore.NewTrainingPlanStore(db)
+	workoutStore := sqliteStore.NewWorkoutStore(db)
+	return NewTrainingPlanService(planStore), workoutStore
+}
+
+func TestTrainingPlanService_DeleteCascadesWorkouts(t *testing.T) {
+	planSvc, workoutStore := setupSQLiteTestDB(t)
+
+	plan, err := planSvc.Create("user-1", "Plan with workouts", time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC), 8)
+	require.NoError(t, err)
+
+	workouts := []*model.Workout{
+		{ID: "w1", PlanID: plan.ID, RunType: "easy_run", Day: plan.StartDate, Description: "Easy run", Status: "pending", Distance: 5},
+		{ID: "w2", PlanID: plan.ID, RunType: "long_run", Day: plan.StartDate.AddDate(0, 0, 1), Description: "Long run", Status: "pending", Distance: 15},
+	}
+	require.NoError(t, workoutStore.CreateBatch(workouts))
+
+	// Verify workouts exist
+	found, err := workoutStore.GetByPlanID(plan.ID)
+	require.NoError(t, err)
+	assert.Len(t, found, 2)
+
+	// Delete the plan
+	require.NoError(t, planSvc.Delete(plan.ID))
+
+	// Workouts should be cascade-deleted by the DB
+	found, err = workoutStore.GetByPlanID(plan.ID)
+	require.NoError(t, err)
+	assert.Empty(t, found)
 }
 
 func TestTrainingPlanService_GetByUserID(t *testing.T) {

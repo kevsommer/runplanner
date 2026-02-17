@@ -19,7 +19,7 @@
           v-for="plan in plans"
           :key="plan.id"
           class="col-12 md:col-6">
-          <TrainingPlanCard :plan="plan" />
+          <TrainingPlanCard :plan="plan" @deleted="fetchTrainingPlans" />
         </div>
       </div>
       <p
