@@ -30,6 +30,18 @@
         :max="30" />
     </div>
 
+    <div class="flex flex-column gap-2">
+      <label for="importJson">Import Workouts (JSON)</label>
+      <Textarea
+        id="importJson"
+        v-model="form.importJson"
+        rows="6"
+        placeholder='{"workouts": [{"runType": "easy_run", "week": 1, "dayOfWeek": 1, "description": "", "distance": 8.0}]}' />
+      <small class="text-color-secondary">
+        Optional. Paste JSON to bulk-create workouts with the plan.
+      </small>
+    </div>
+
     <Button
       type="submit"
       :loading="loading"
@@ -43,6 +55,7 @@ import InputText from "primevue/inputtext";
 import DatePicker from "primevue/datepicker";
 import Button from "primevue/button";
 import InputNumber from "primevue/inputnumber";
+import Textarea from "primevue/textarea";
 import { useRouter } from "vue-router";
 import { api } from "@/api";
 import { useApi } from "@/composables/useApi";
@@ -54,6 +67,7 @@ const form = reactive({
   name: "",
   endDate: new Date(),
   weeks: 10,
+  importJson: "",
 });
 
 const payload = ref<Record<string, any>>({});
@@ -61,8 +75,19 @@ const payload = ref<Record<string, any>>({});
 const { exec: submitPlan, loading } = useApi({
   exec: () => api.post("/plans/", payload.value),
   successToast: "Training plan created",
-  onSuccess: ({ data }) => {
-    router.push({ name: "plan", params: { id: data.plan.id } });
+  onSuccess: async ({ data }) => {
+    const planId = data.plan.id;
+
+    if (form.importJson.trim()) {
+      try {
+        const parsed = JSON.parse(form.importJson);
+        await api.post(`/plans/${planId}/workouts/bulk`, parsed);
+      } catch {
+        // Plan was created, navigate anyway — user can fix workouts later
+      }
+    }
+
+    router.push({ name: "plan", params: { id: planId } });
   },
 });
 
