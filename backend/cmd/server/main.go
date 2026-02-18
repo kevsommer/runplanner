@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	goose "github.com/pressly/goose/v3"
 
+	"github.com/kevsommer/runplanner/internal/ai"
 	"github.com/kevsommer/runplanner/internal/controller"
 	"github.com/kevsommer/runplanner/internal/service"
 	"github.com/kevsommer/runplanner/internal/store"
@@ -51,6 +52,12 @@ func main() {
 	trainingPlanSvc := service.NewTrainingPlanService(trainingPlanStore)
 	workoutSvc := service.NewWorkoutService(workoutStore)
 
+	var aiClient ai.Client
+	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
+		aiClient = ai.NewOpenAIClient(key)
+	}
+	generateSvc := service.NewGenerateService(aiClient, trainingPlanSvc, workoutSvc)
+
 	r := gin.Default()
 	allowedOrigins := []string{"http://localhost:5173", "http://127.0.0.1:5173"}
 	if extra := os.Getenv("CORS_ORIGINS"); extra != "" {
@@ -82,7 +89,7 @@ func main() {
 	// API routes
 	api := r.Group("/api")
 	controller.RegisterAuthRoutes(api, authSvc)
-	controller.RegisterTrainingPlanRoutes(api, trainingPlanSvc, workoutSvc)
+	controller.RegisterTrainingPlanRoutes(api, trainingPlanSvc, workoutSvc, generateSvc)
 	controller.RegisterWorkoutRoutes(api, workoutSvc, trainingPlanSvc)
 
 	log.Printf("listening on :%s", port)

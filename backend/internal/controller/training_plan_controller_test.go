@@ -40,7 +40,7 @@ func setupPlansTestRouter(t *testing.T) (*gin.Engine, *service.AuthService, *ser
 
 	api := r.Group("/api")
 	RegisterAuthRoutes(api, authSvc)
-	RegisterTrainingPlanRoutes(api, planSvc, workoutSvc)
+	RegisterTrainingPlanRoutes(api, planSvc, workoutSvc, nil)
 
 	return r, authSvc, planSvc, workoutSvc
 }

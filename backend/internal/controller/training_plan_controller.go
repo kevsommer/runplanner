@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 type TrainingPlanController struct {
 	svc      *service.TrainingPlanService
 	workouts *service.WorkoutService
+	generate *service.GenerateService
 }
 
 func requireAuth(c *gin.Context) {
@@ -24,12 +26,13 @@ func requireAuth(c *gin.Context) {
 	c.Next()
 }
 
-func RegisterTrainingPlanRoutes(rg *gin.RouterGroup, svc *service.TrainingPlanService, workouts *service.WorkoutService) {
-	tc := &TrainingPlanController{svc: svc, workouts: workouts}
+func RegisterTrainingPlanRoutes(rg *gin.RouterGroup, svc *service.TrainingPlanService, workouts *service.WorkoutService, generate *service.GenerateService) {
+	tc := &TrainingPlanController{svc: svc, workouts: workouts, generate: generate}
 	plans := rg.Group("/plans")
 	plans.Use(requireAuth)
 	{
 		plans.POST("/", tc.postCreate)
+		plans.POST("/generate", tc.postGenerate)
 		plans.GET("/", tc.getByUserID)
 		plans.GET("/:id", tc.getByID)
 		plans.PUT("/:id", tc.putUpdate)
@@ -179,4 +182,51 @@ func (t *TrainingPlanController) getByUserID(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"plans": plans})
+}
+
+type generatePlanInput struct {
+	Name          string  `json:"name" binding:"required"`
+	EndDate       string  `json:"endDate" binding:"required"`
+	Weeks         int     `json:"weeks" binding:"required"`
+	BaseKmPerWeek float64 `json:"baseKmPerWeek" binding:"required"`
+	RunsPerWeek   int     `json:"runsPerWeek" binding:"required"`
+}
+
+func (t *TrainingPlanController) postGenerate(c *gin.Context) {
+	uid := currentUserID(c)
+	var req generatePlanInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name, endDate, weeks, baseKmPerWeek and runsPerWeek are required"})
+		return
+	}
+	endDate, err := time.Parse("2006-01-02", req.EndDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "endDate must be YYYY-MM-DD"})
+		return
+	}
+
+	input := service.GenerateInput{
+		Name:          req.Name,
+		EndDate:       endDate,
+		Weeks:         req.Weeks,
+		BaseKmPerWeek: req.BaseKmPerWeek,
+		RunsPerWeek:   req.RunsPerWeek,
+	}
+
+	plan, workouts, err := t.generate.Generate(c.Request.Context(), model.UserID(uid), input)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrAINotConfigured):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "AI generation is not configured on the server"})
+		case errors.Is(err, service.ErrInvalidInput):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		case errors.Is(err, service.ErrAIGeneration):
+			c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate plan"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"plan": plan, "workouts": workouts})
 }

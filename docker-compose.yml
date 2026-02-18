@@ -4,6 +4,7 @@ services:
     environment:
       - SESSION_SECRET=${SESSION_SECRET:-change-me-in-production}
       - DATABASE_URL=file:data/runplanner.db?_pragma=busy_timeout(5000)&cache=shared
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     volumes:
       - db-data:/app/data
     restart: unless-stopped
