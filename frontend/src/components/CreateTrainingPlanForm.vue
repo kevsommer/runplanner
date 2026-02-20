@@ -81,7 +81,9 @@
       :loading="loading"
       :label="mode === 'ai' ? 'Generate Plan' : 'Create Plan'" />
 
-    <div v-if="generateLoading" class="flex align-items-center gap-2 text-color-secondary">
+    <div
+      v-if="generateLoading"
+      class="flex align-items-center gap-2 text-color-secondary">
       <i class="pi pi-spin pi-spinner" />
       <span>Generating your training plan with AI — this may take up to a minute...</span>
     </div>
@@ -121,7 +123,7 @@ const form = reactive({
 const manualPayload = ref<Record<string, any>>({});
 
 const { exec: submitManual, loading: manualLoading } = useApi({
-  exec: () => api.post("/plans/", manualPayload.value),
+  exec: () => api.post("/plans", manualPayload.value),
   successToast: "Training plan created",
   onSuccess: async ({ data }) => {
     const planId = data.plan.id;

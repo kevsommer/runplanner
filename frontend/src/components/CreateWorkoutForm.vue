@@ -62,7 +62,7 @@ const form = reactive({
 const distance = computed(() => form.runType === "strength_training" ? 0 : form.distance);
 
 const { exec: submitWorkout, loading } = useApi({
-  exec: (payload: Record<string, any>) => api.post("/workouts/", payload),
+  exec: (payload: Record<string, any>) => api.post("/workouts", payload),
   successToast: "Workout created",
   onSuccess: () => {
     emit("created");
