@@ -14,6 +14,20 @@ TypeScript cannot handle type information for `.vue` imports by default, so we r
 
 See [Vite Configuration Reference](https://vite.dev/config/).
 
+## Environment Variables
+
+Copy `.env.example` to `.env.local` and adjust as needed:
+
+```sh
+cp .env.example .env.local
+```
+
+| Variable | Default | Description |
+|---|---|---|
+| `VITE_API_BASE_URL` | `/api` | Base URL for the backend API. Defaults to a relative path that works behind a reverse proxy. Set to an absolute URL when the frontend and backend run on different origins (e.g. `https://api.example.com/api`). |
+
+> **Note:** Only variables prefixed with `VITE_` are exposed to the browser bundle.
+
 ## Project Setup
 
 ```sh
