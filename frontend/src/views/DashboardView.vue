@@ -19,7 +19,9 @@
           v-for="plan in plans"
           :key="plan.id"
           class="col-12 md:col-6">
-          <TrainingPlanCard :plan="plan" @deleted="fetchTrainingPlans" />
+          <TrainingPlanCard
+            :plan="plan"
+            @deleted="fetchTrainingPlans" />
         </div>
       </div>
       <p
@@ -56,7 +58,7 @@ const plans = ref<Plan[]>([]);
 const { exec: fetchTrainingPlans } = useApi({
   exec: () => api.get("/plans"),
   onSuccess: ({ data }) => {
-    plans.value = data.plans;
+    plans.value = data.plans || [];
   },
 });
 
