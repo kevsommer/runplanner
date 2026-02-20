@@ -38,7 +38,6 @@ type openAIRequest struct {
 	Messages       []openAIMessage  `json:"messages"`
 	ResponseFormat openAIRespFormat `json:"response_format"`
 	Temperature    float64          `json:"temperature"`
-	MaxTokens      int              `json:"max_tokens,omitempty"`
 }
 
 type openAIMessage struct {
@@ -63,14 +62,13 @@ type openAIResponse struct {
 
 func (c *OpenAIClient) Complete(ctx context.Context, req CompletionRequest) (string, error) {
 	body := openAIRequest{
-		Model: "gpt-5-mini",
+		Model: "gpt-4o-mini",
 		Messages: []openAIMessage{
 			{Role: "system", Content: req.SystemPrompt},
 			{Role: "user", Content: req.UserPrompt},
 		},
 		ResponseFormat: openAIRespFormat{Type: "json_object"},
-		Temperature:    0,
-		MaxTokens:      4096,
+		Temperature:    1,
 	}
 
 	jsonBody, err := json.Marshal(body)

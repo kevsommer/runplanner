@@ -97,7 +97,15 @@ func validateGenerateInput(input GenerateInput) error {
 
 func buildSystemPrompt() string {
 	return `You are a running coach that creates structured training plans. You output JSON only.
+{ "workouts": [
+    { "runType": "easy_run", "week": 1, "dayOfWeek": 1, "description": "+4x 20s Strides", "distance": 8.0 },
+    { "runType": "tempo_run", "week": 1, "dayOfWeek": 3, "description": "4k Easy\n3k Tempo\n3k Easy", "distance": 10.0 },
+    { "runType": "easy_run", "week": 1, "dayOfWeek": 4, "description": "", "distance": 6.0 },
+    { "runType": "long_run", "week": 1, "dayOfWeek": 6, "description": "All Easy", "distance": 16.0 }
+  ] 
+}
 
+This is the json structure you MUST follow. Do NOT include any text outside the JSON object. All fields are required.
 Rules for generating training plans:
 - Every 4th week is a DELOAD week: reduce total volume by 40%
 - The last 3 weeks before race day are TAPER weeks: progressively reduce volume (75%, 50%, 30% of peak)
