@@ -31,9 +31,9 @@ func RegisterTrainingPlanRoutes(rg *gin.RouterGroup, svc *service.TrainingPlanSe
 	plans := rg.Group("/plans")
 	plans.Use(requireAuth)
 	{
-		plans.POST("/", tc.postCreate)
+		plans.POST("", tc.postCreate)
 		plans.POST("/generate", tc.postGenerate)
-		plans.GET("/", tc.getByUserID)
+		plans.GET("", tc.getByUserID)
 		plans.GET("/:id", tc.getByID)
 		plans.PUT("/:id", tc.putUpdate)
 		plans.DELETE("/:id", tc.deletePlan)

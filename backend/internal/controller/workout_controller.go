@@ -25,7 +25,7 @@ func RegisterWorkoutRoutes(rg *gin.RouterGroup, workouts *service.WorkoutService
 	ws := rg.Group("/workouts")
 	ws.Use(requireAuth)
 	{
-		ws.POST("/", wc.postCreate)
+		ws.POST("", wc.postCreate)
 		ws.GET("/:id", wc.getByID)
 		ws.PUT("/:id", wc.update)
 		ws.DELETE("/:id", wc.delete)
