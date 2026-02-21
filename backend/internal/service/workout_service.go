@@ -43,12 +43,24 @@ func NewWorkoutService(workouts store.WorkoutStore) *WorkoutService {
 	return &WorkoutService{workouts: workouts}
 }
 
+func isValidRunType(runType string) bool {
+	validRunTypes := map[string]bool{
+		"easy_run": true, 
+		"intervals": true, 
+		"long_run": true,
+		"tempo_run": true,
+		"strength_training": true,
+		"race": true,
+	}
+	return validRunTypes[runType]
+}
+
 func (s *WorkoutService) Create(planID model.TrainingPlanID, runType string, day time.Time, description string, distance float64) (*model.Workout, error) {
 	if distance < 0 {
 		return nil, ErrInvalidDistance
 	}
 
-	if runType != "easy_run" && runType != "intervals" && runType != "long_run" && runType != "tempo_run" && runType != "strength_training" {
+	if !isValidRunType(runType) {
 		return nil, ErrInvalidRunType
 	}
 
@@ -73,13 +85,9 @@ func (s *WorkoutService) Create(planID model.TrainingPlanID, runType string, day
 }
 
 func (s *WorkoutService) CreateBatch(plan *model.TrainingPlan, items []BulkWorkoutInput) ([]*model.Workout, error) {
-	validRunTypes := map[string]bool{
-		"easy_run": true, "intervals": true, "long_run": true, "tempo_run": true, "strength_training": true,
-	}
-
 	workouts := make([]*model.Workout, 0, len(items))
 	for i, item := range items {
-		if !validRunTypes[item.RunType] {
+		if !isValidRunType(item.RunType) {
 			return nil, &BatchValidationError{Index: i, Message: "invalid run type"}
 		}
 		if item.Distance < 0 {
@@ -125,7 +133,7 @@ func (s *WorkoutService) Update(workout *model.Workout) error {
 		return ErrInvalidDistance
 	}
 
-	if workout.RunType != "easy_run" && workout.RunType != "intervals" && workout.RunType != "long_run" && workout.RunType != "tempo_run" && workout.RunType != "strength_training" {
+	if !isValidRunType(workout.RunType) {
 		return ErrInvalidRunType
 	}
 

@@ -40,7 +40,6 @@
 import Textarea from "primevue/textarea";
 import SelectButton from "primevue/selectbutton";
 import InputNumber from "primevue/inputnumber";
-import { watch } from "vue";
 
 const runTypeOptions = [
   { label: "Easy run", value: "easy_run" },
@@ -48,6 +47,7 @@ const runTypeOptions = [
   { label: "Long run", value: "long_run" },
   { label: "Tempo run", value: "tempo_run" },
   { label: "Strength", value: "strength_training" },
+  { label: "Race", value: "race" },
 ];
 
 defineProps<{

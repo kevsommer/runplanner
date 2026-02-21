@@ -121,7 +121,7 @@ Rules for generating training plans:
 - All distances MUST be whole integers (e.g. 8, 12, 15), never decimals
 - Each workout needs a brief description
 
-Valid run types: easy_run, intervals, long_run, tempo_run
+Valid run types: easy_run, intervals, long_run, tempo_run, race
 DayOfWeek: 1=Monday through 7=Sunday
 
 Respond with a JSON object: {"workouts": [...]}

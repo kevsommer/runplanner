@@ -139,6 +139,7 @@ function runTypeSeverity(runType: string): string | undefined {
     intervals: "danger",
     tempo_run: "info",
     strength_training: "secondary",
+    race: "contrast",
   };
   return severities[runType];
 }
