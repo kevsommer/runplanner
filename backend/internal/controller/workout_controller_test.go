@@ -66,7 +66,7 @@ func TestWorkoutController_Create(t *testing.T) {
 			"distance":    5.0,
 		}
 		bodyBytes, _ := json.Marshal(body)
-		req := httptest.NewRequest(http.MethodPost, "/api/workouts/", bytes.NewReader(bodyBytes))
+		req := httptest.NewRequest(http.MethodPost, "/api/workouts", bytes.NewReader(bodyBytes))
 		req.Header.Set("Content-Type", "application/json")
 		for _, c := range cookies {
 			req.AddCookie(c)
@@ -95,7 +95,7 @@ func TestWorkoutController_Create(t *testing.T) {
 			"distance":    5.0,
 		}
 		bodyBytes, _ := json.Marshal(body)
-		req := httptest.NewRequest(http.MethodPost, "/api/workouts/", bytes.NewReader(bodyBytes))
+		req := httptest.NewRequest(http.MethodPost, "/api/workouts", bytes.NewReader(bodyBytes))
 		req.Header.Set("Content-Type", "application/json")
 		for _, c := range cookies {
 			req.AddCookie(c)
@@ -124,7 +124,7 @@ func TestWorkoutController_Create(t *testing.T) {
 			"distance":    0.0,
 		}
 		bodyBytes, _ := json.Marshal(body)
-		req := httptest.NewRequest(http.MethodPost, "/api/workouts/", bytes.NewReader(bodyBytes))
+		req := httptest.NewRequest(http.MethodPost, "/api/workouts", bytes.NewReader(bodyBytes))
 		req.Header.Set("Content-Type", "application/json")
 		for _, c := range cookies {
 			req.AddCookie(c)
@@ -151,7 +151,7 @@ func TestWorkoutController_Create(t *testing.T) {
 			"distance":    5.0,
 		}
 		bodyBytes, _ := json.Marshal(body)
-		req := httptest.NewRequest(http.MethodPost, "/api/workouts/", bytes.NewReader(bodyBytes))
+		req := httptest.NewRequest(http.MethodPost, "/api/workouts", bytes.NewReader(bodyBytes))
 		req.Header.Set("Content-Type", "application/json")
 		for _, c := range cookies {
 			req.AddCookie(c)
@@ -175,7 +175,7 @@ func TestWorkoutController_Create(t *testing.T) {
 			"distance":    5.0,
 		}
 		bodyBytes, _ := json.Marshal(body)
-		req := httptest.NewRequest(http.MethodPost, "/api/workouts/", bytes.NewReader(bodyBytes))
+		req := httptest.NewRequest(http.MethodPost, "/api/workouts", bytes.NewReader(bodyBytes))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -193,7 +193,7 @@ func TestWorkoutController_Create(t *testing.T) {
 			"distance":    5.0,
 		}
 		bodyBytes, _ := json.Marshal(body)
-		req := httptest.NewRequest(http.MethodPost, "/api/workouts/", bytes.NewReader(bodyBytes))
+		req := httptest.NewRequest(http.MethodPost, "/api/workouts", bytes.NewReader(bodyBytes))
 		req.Header.Set("Content-Type", "application/json")
 		for _, c := range cookies {
 			req.AddCookie(c)

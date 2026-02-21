@@ -24,6 +24,7 @@ type GenerateInput struct {
 	Weeks         int
 	BaseKmPerWeek float64
 	RunsPerWeek   int
+	RaceGoal      string
 }
 
 type GenerateService struct {
@@ -76,6 +77,13 @@ func (s *GenerateService) Generate(ctx context.Context, userID model.UserID, inp
 		return nil, nil, fmt.Errorf("failed to create workouts: %w", err)
 	}
 
+	raceWorkout, err := s.workouts.CreateRaceWorkout(plan, input.RaceGoal)
+	if err != nil {
+		_ = s.plans.Delete(plan.ID)
+		return nil, nil, fmt.Errorf("failed to create race workout: %w", err)
+	}
+	workouts = append(workouts, raceWorkout)
+
 	return plan, workouts, nil
 }
 
@@ -92,6 +100,9 @@ func validateGenerateInput(input GenerateInput) error {
 	if input.Name == "" {
 		return fmt.Errorf("%w: name is required", ErrInvalidInput)
 	}
+	if _, ok := RaceGoalDistances[input.RaceGoal]; !ok {
+		return fmt.Errorf("%w: raceGoal must be one of: 5k, 10k, halfmarathon, marathon", ErrInvalidInput)
+	}
 	return nil
 }
 
@@ -107,21 +118,23 @@ func buildSystemPrompt() string {
 
 This is the json structure you MUST follow. Do NOT include any text outside the JSON object. All fields are required.
 Rules for generating training plans:
-- Every 4th week is a DELOAD week: reduce total volume by 40%
-- The last 3 weeks before race day are TAPER weeks: progressively reduce volume (75%, 50%, 30% of peak)
-- Apply ~10% weekly volume progression on non-deload, non-taper weeks
-- Every week MUST include exactly one long_run, scheduled on a weekend (Saturday=6 or Sunday=7)
-- Long run should start at 15-18 km in week 1 and progressively increase, peaking at 32-35 km for higher base volumes (40+ km/week) or 28-32 km for lower base volumes
-- The long run MUST surpass 21 km (half marathon) well before the final weeks
-- If runsPerWeek >= 3, include one speed session per week (tempo_run or intervals, alternating)
+- Apply ~10% weekly volume progression on normal weeks
+- Every 4th week is a DELOAD week: reduce total volume by 40%, no speed sessions
+- TAPER: the final 3 weeks follow a strict structure:
+  - Week N-2: 75% of peak volume, includes one long_run (shorter than peak)
+  - Week N-1: 50% of peak volume, includes one short long_run (e.g. 12-15 km)
+  - Week N (race week): 20% of peak volume, ONLY easy_run shake-out runs (3-5 km each). Do NOT include a long_run or speed session in the race week.
+- Every week MUST include exactly one long_run on a weekend (Saturday=6 or Sunday=7), EXCEPT the race week (week N) which has NO long_run
+- Long run starts at 15-18 km in week 1 and progressively increases, calibrated to the race goal distance
+- If runsPerWeek >= 3, include one speed session per week on non-deload, non-taper weeks (tempo_run or intervals, alternating)
 - Remaining runs should be easy_run
 - 80% of weekly volume should come from easy_run and long_run combined; speed sessions are shorter
-- The long_run should be the longest run of the week by a clear margin (e.g. 30-40% of weekly volume)
 - Vary distances between runs — do NOT give every easy_run the same distance; mix shorter and longer easy days
 - All distances MUST be whole integers (e.g. 8, 12, 15), never decimals
 - Each workout needs a brief description
 
-Valid run types: easy_run, intervals, long_run, tempo_run, race
+Valid run types: easy_run, intervals, long_run, tempo_run
+Do NOT generate a race workout — it is automatically added on race day by the system.
 DayOfWeek: 1=Monday through 7=Sunday
 
 Respond with a JSON object: {"workouts": [...]}
@@ -132,9 +145,12 @@ Distance is in kilometers as whole integers. Do not include any text outside the
 func buildUserPrompt(input GenerateInput) string {
 	return fmt.Sprintf(
 		"Create a %d-week training plan with %d runs per week. Base weekly volume: %.1f km. "+
+			"Race goal: %s (%g km). Calibrate peak long run and total volume appropriately for this race distance. "+
 			"Distribute the volume across the runs with appropriate progression. "+
 			"Remember: deload every 4th week, taper the last 3 weeks before race day (week %d).",
-		input.Weeks, input.RunsPerWeek, input.BaseKmPerWeek, input.Weeks,
+		input.Weeks, input.RunsPerWeek, input.BaseKmPerWeek,
+		raceGoalLabels[input.RaceGoal], RaceGoalDistances[input.RaceGoal],
+		input.Weeks,
 	)
 }
 

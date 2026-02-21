@@ -41,9 +41,10 @@ func RegisterTrainingPlanRoutes(rg *gin.RouterGroup, svc *service.TrainingPlanSe
 }
 
 type createPlanInput struct {
-	Name    string `json:"name" binding:"required"`
-	EndDate string `json:"endDate" binding:"required"` // ISO date YYYY-MM-DD
-	Weeks   int    `json:"weeks" binding:"required"`
+	Name     string `json:"name" binding:"required"`
+	EndDate  string `json:"endDate" binding:"required"` // ISO date YYYY-MM-DD
+	Weeks    int    `json:"weeks" binding:"required"`
+	RaceGoal string `json:"raceGoal"`
 }
 
 func (t *TrainingPlanController) postCreate(c *gin.Context) {
@@ -70,6 +71,13 @@ func (t *TrainingPlanController) postCreate(c *gin.Context) {
 		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+	if req.RaceGoal != "" {
+		if _, err := t.workouts.CreateRaceWorkout(plan, req.RaceGoal); err != nil {
+			_ = t.svc.Delete(plan.ID)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 	}
 	c.JSON(http.StatusCreated, gin.H{"plan": plan})
 }
@@ -190,13 +198,14 @@ type generatePlanInput struct {
 	Weeks         int     `json:"weeks" binding:"required"`
 	BaseKmPerWeek float64 `json:"baseKmPerWeek" binding:"required"`
 	RunsPerWeek   int     `json:"runsPerWeek" binding:"required"`
+	RaceGoal      string  `json:"raceGoal" binding:"required"`
 }
 
 func (t *TrainingPlanController) postGenerate(c *gin.Context) {
 	uid := currentUserID(c)
 	var req generatePlanInput
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "name, endDate, weeks, baseKmPerWeek and runsPerWeek are required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name, endDate, weeks, baseKmPerWeek, runsPerWeek and raceGoal are required"})
 		return
 	}
 	endDate, err := time.Parse("2006-01-02", req.EndDate)
@@ -211,6 +220,7 @@ func (t *TrainingPlanController) postGenerate(c *gin.Context) {
 		Weeks:         req.Weeks,
 		BaseKmPerWeek: req.BaseKmPerWeek,
 		RunsPerWeek:   req.RunsPerWeek,
+		RaceGoal:      req.RaceGoal,
 	}
 
 	plan, workouts, err := t.generate.Generate(c.Request.Context(), model.UserID(uid), input)

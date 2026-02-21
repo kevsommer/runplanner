@@ -65,7 +65,7 @@ func TestTrainingPlanController_Create(t *testing.T) {
 	t.Run("creates plan when authenticated", func(t *testing.T) {
 		body := map[string]interface{}{"name": "Marathon 2025", "endDate": "2025-06-15", "weeks": 16}
 		bodyBytes, _ := json.Marshal(body)
-		req := httptest.NewRequest(http.MethodPost, "/api/plans/", bytes.NewReader(bodyBytes))
+		req := httptest.NewRequest(http.MethodPost, "/api/plans",bytes.NewReader(bodyBytes))
 		req.Header.Set("Content-Type", "application/json")
 		for _, c := range cookies {
 			req.AddCookie(c)
@@ -88,7 +88,7 @@ func TestTrainingPlanController_Create(t *testing.T) {
 	t.Run("unauthenticated returns 401", func(t *testing.T) {
 		body := map[string]interface{}{"name": "Plan", "endDate": "2025-06-15", "weeks": 8}
 		bodyBytes, _ := json.Marshal(body)
-		req := httptest.NewRequest(http.MethodPost, "/api/plans/", bytes.NewReader(bodyBytes))
+		req := httptest.NewRequest(http.MethodPost, "/api/plans",bytes.NewReader(bodyBytes))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -100,7 +100,7 @@ func TestTrainingPlanController_Create(t *testing.T) {
 	t.Run("invalid endDate returns 400", func(t *testing.T) {
 		body := map[string]interface{}{"name": "Plan", "endDate": "invalid", "weeks": 8}
 		bodyBytes, _ := json.Marshal(body)
-		req := httptest.NewRequest(http.MethodPost, "/api/plans/", bytes.NewReader(bodyBytes))
+		req := httptest.NewRequest(http.MethodPost, "/api/plans",bytes.NewReader(bodyBytes))
 		req.Header.Set("Content-Type", "application/json")
 		for _, c := range cookies {
 			req.AddCookie(c)
@@ -414,7 +414,7 @@ func TestTrainingPlanController_GetByUserID(t *testing.T) {
 	cookies := w.Result().Cookies()
 
 	t.Run("returns plans for authenticated user", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/api/plans/", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/plans", nil)
 		for _, c := range cookies {
 			req.AddCookie(c)
 		}

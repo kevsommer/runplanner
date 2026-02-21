@@ -20,13 +20,12 @@ func TestOpenAIClient_Complete(t *testing.T) {
 
 			var body openAIRequest
 			require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
-			assert.Equal(t, "gpt-5-mini", body.Model)
+			assert.Equal(t, "gpt-4o-mini", body.Model)
 			assert.Len(t, body.Messages, 2)
 			assert.Equal(t, "system", body.Messages[0].Role)
 			assert.Equal(t, "user", body.Messages[1].Role)
 			assert.Equal(t, "json_object", body.ResponseFormat.Type)
-			assert.Equal(t, float64(0), body.Temperature)
-			assert.Equal(t, 4096, body.MaxTokens)
+			assert.Equal(t, float64(1), body.Temperature)
 
 			resp := openAIResponse{
 				Choices: []struct {

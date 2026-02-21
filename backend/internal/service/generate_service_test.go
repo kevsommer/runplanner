@@ -37,6 +37,7 @@ func validInput() GenerateInput {
 		Weeks:         8,
 		BaseKmPerWeek: 30,
 		RunsPerWeek:   3,
+		RaceGoal:      "marathon",
 	}
 }
 
@@ -58,15 +59,18 @@ func TestGenerateService_Generate(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "Marathon Plan", plan.Name)
 		assert.Equal(t, 8, plan.Weeks)
-		assert.Len(t, workouts, 3)
+		// 3 AI-generated workouts + 1 race workout appended automatically
+		assert.Len(t, workouts, 4)
 		assert.Equal(t, "easy_run", workouts[0].RunType)
 		assert.Equal(t, 5.0, workouts[0].Distance)
 		assert.Equal(t, "long_run", workouts[2].RunType)
+		assert.Equal(t, "race", workouts[3].RunType)
+		assert.Equal(t, 42.0, workouts[3].Distance)
 
 		// Verify workouts are persisted
 		stored, err := workoutSvc.GetByPlanID(plan.ID)
 		require.NoError(t, err)
-		assert.Len(t, stored, 3)
+		assert.Len(t, stored, 4)
 	})
 
 	t.Run("returns error when AI client is nil", func(t *testing.T) {
@@ -170,6 +174,22 @@ func TestValidateGenerateInput(t *testing.T) {
 		err := validateGenerateInput(input)
 		assert.ErrorIs(t, err, ErrInvalidInput)
 		assert.Contains(t, err.Error(), "name is required")
+	})
+
+	t.Run("empty raceGoal fails", func(t *testing.T) {
+		input := validInput()
+		input.RaceGoal = ""
+		err := validateGenerateInput(input)
+		assert.ErrorIs(t, err, ErrInvalidInput)
+		assert.Contains(t, err.Error(), "raceGoal")
+	})
+
+	t.Run("invalid raceGoal fails", func(t *testing.T) {
+		input := validInput()
+		input.RaceGoal = "ultramarathon"
+		err := validateGenerateInput(input)
+		assert.ErrorIs(t, err, ErrInvalidInput)
+		assert.Contains(t, err.Error(), "raceGoal")
 	})
 
 	t.Run("boundary: 6 weeks and 2 runs/week passes", func(t *testing.T) {

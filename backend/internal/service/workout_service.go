@@ -16,7 +16,22 @@ var (
 	ErrInvalidRunType              = errors.New("invalid run type")
 	ErrInvalidStatus               = errors.New("invalid status")
 	ErrStrengthTrainingNonZeroDist = errors.New("strength training must have a distance of 0km")
+	ErrInvalidRaceGoal             = errors.New("invalid race goal: must be one of 5k, 10k, halfmarathon, marathon")
 )
+
+var RaceGoalDistances = map[string]float64{
+	"5k":           5,
+	"10k":          10,
+	"halfmarathon": 21,
+	"marathon":     42,
+}
+
+var raceGoalLabels = map[string]string{
+	"5k":           "5K",
+	"10k":          "10K",
+	"halfmarathon": "Half Marathon",
+	"marathon":     "Marathon",
+}
 
 type BatchValidationError struct {
 	Index   int
@@ -146,6 +161,15 @@ func (s *WorkoutService) Update(workout *model.Workout) error {
 	}
 
 	return s.workouts.Update(workout)
+}
+
+func (s *WorkoutService) CreateRaceWorkout(plan *model.TrainingPlan, raceGoal string) (*model.Workout, error) {
+	distance, ok := RaceGoalDistances[raceGoal]
+	if !ok {
+		return nil, ErrInvalidRaceGoal
+	}
+	desc := "Race Day - " + raceGoalLabels[raceGoal]
+	return s.Create(plan.ID, "race", plan.EndDate, desc, distance)
 }
 
 func (s *WorkoutService) Delete(id model.WorkoutID) error {

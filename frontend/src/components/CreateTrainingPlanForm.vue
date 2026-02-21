@@ -39,6 +39,15 @@
         :max="30" />
     </div>
 
+    <div class="flex flex-column gap-2">
+      <label>Race Goal</label>
+      <SelectButton
+        v-model="form.raceGoal"
+        :options="raceGoalOptions"
+        optionLabel="label"
+        optionValue="value" />
+    </div>
+
     <template v-if="mode === 'ai'">
       <div class="flex flex-column gap-2">
         <label for="baseKm">Base km/week</label>
@@ -111,6 +120,13 @@ const modeOptions = [
   { label: "Manual", value: "manual" },
 ];
 
+const raceGoalOptions = [
+  { label: "5K", value: "5k" },
+  { label: "10K", value: "10k" },
+  { label: "Half Marathon", value: "halfmarathon" },
+  { label: "Marathon", value: "marathon" },
+];
+
 const form = reactive({
   name: "",
   endDate: new Date(),
@@ -118,6 +134,7 @@ const form = reactive({
   importJson: "",
   baseKmPerWeek: 30,
   runsPerWeek: 4,
+  raceGoal: "marathon",
 });
 
 const manualPayload = ref<Record<string, any>>({});
@@ -162,6 +179,7 @@ function onSubmit() {
       weeks: form.weeks,
       baseKmPerWeek: form.baseKmPerWeek,
       runsPerWeek: form.runsPerWeek,
+      raceGoal: form.raceGoal,
     };
     submitGenerate();
   } else {
@@ -169,6 +187,7 @@ function onSubmit() {
       name: form.name,
       endDate: formatDateToYYYYMMDD(form.endDate),
       weeks: form.weeks,
+      raceGoal: form.raceGoal,
     };
     submitManual();
   }

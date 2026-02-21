@@ -82,6 +82,7 @@ func TestGenerateController_PostGenerate(t *testing.T) {
 			"weeks":         8,
 			"baseKmPerWeek": 30.0,
 			"runsPerWeek":   3,
+			"raceGoal":      "marathon",
 		}
 		bodyBytes, _ := json.Marshal(body)
 		req := httptest.NewRequest(http.MethodPost, "/api/plans/generate", bytes.NewReader(bodyBytes))
@@ -103,7 +104,7 @@ func TestGenerateController_PostGenerate(t *testing.T) {
 
 		workouts, ok := resp["workouts"].([]interface{})
 		require.True(t, ok)
-		assert.Len(t, workouts, 3)
+		assert.Len(t, workouts, 4) // 3 AI-generated + 1 race workout
 	})
 
 	t.Run("unauthenticated returns 401", func(t *testing.T) {
@@ -160,6 +161,7 @@ func TestGenerateController_PostGenerate(t *testing.T) {
 			"weeks":         8,
 			"baseKmPerWeek": 30.0,
 			"runsPerWeek":   3,
+			"raceGoal":      "marathon",
 		}
 		bodyBytes, _ := json.Marshal(body)
 		req := httptest.NewRequest(http.MethodPost, "/api/plans/generate", bytes.NewReader(bodyBytes))
@@ -188,6 +190,7 @@ func TestGenerateController_PostGenerate(t *testing.T) {
 			"weeks":         3, // less than 6
 			"baseKmPerWeek": 30.0,
 			"runsPerWeek":   3,
+			"raceGoal":      "marathon",
 		}
 		bodyBytes, _ := json.Marshal(body)
 		req := httptest.NewRequest(http.MethodPost, "/api/plans/generate", bytes.NewReader(bodyBytes))
@@ -215,6 +218,7 @@ func TestGenerateController_PostGenerate(t *testing.T) {
 			"weeks":         8,
 			"baseKmPerWeek": 30.0,
 			"runsPerWeek":   3,
+			"raceGoal":      "marathon",
 		}
 		bodyBytes, _ := json.Marshal(body)
 		req := httptest.NewRequest(http.MethodPost, "/api/plans/generate", bytes.NewReader(bodyBytes))
@@ -243,6 +247,7 @@ func TestGenerateController_PostGenerate(t *testing.T) {
 			"weeks":         8,
 			"baseKmPerWeek": 30.0,
 			"runsPerWeek":   3,
+			"raceGoal":      "marathon",
 		}
 		bodyBytes, _ := json.Marshal(body)
 		req := httptest.NewRequest(http.MethodPost, "/api/plans/generate", bytes.NewReader(bodyBytes))
@@ -268,6 +273,7 @@ func TestGenerateController_PostGenerate(t *testing.T) {
 			"weeks":         8,
 			"baseKmPerWeek": 30.0,
 			"runsPerWeek":   9,
+			"raceGoal":      "marathon",
 		}
 		bodyBytes, _ := json.Marshal(body)
 		req := httptest.NewRequest(http.MethodPost, "/api/plans/generate", bytes.NewReader(bodyBytes))
