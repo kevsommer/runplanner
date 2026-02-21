@@ -2,7 +2,15 @@ import { ref, computed } from 'vue'
 import type { AxiosError } from 'axios'
 import { api } from '../api'
 
-const user = ref(null)
+interface AuthUser {
+  user: {
+    activePlanId?: string
+    [key: string]: any
+  }
+  [key: string]: any
+}
+
+const user = ref<AuthUser | null>(null)
 const loading = ref(true)
 const error = ref(null)
 
