@@ -49,6 +49,7 @@
         />
         <i
           class="pi cursor-pointer pi-trash text-red-500 ml-2"
+          data-test="delete-button"
           @click="deleteWorkout" />
       </div>
     </div>
@@ -65,6 +66,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import Tag from "primevue/tag";
+import { useConfirm } from "primevue/useconfirm";
 import { api } from "@/api";
 import { useApi } from "@/composables/useApi";
 
@@ -87,6 +89,8 @@ const emit = defineEmits<{
   (e: "updated"): void;
   (e: "edit"): void;
 }>();
+
+const confirm = useConfirm();
 
 const { exec: toggleDoneExec, loading: toggleDoneLoading } = useApi({
   exec: (newStatus: string) => api.put(`/workouts/${props.workout.id}`, { status: newStatus }),
@@ -118,9 +122,15 @@ function skipWorkout() {
 }
 
 function deleteWorkout() {
-  if (!confirm("Are you sure you want to delete this workout?")) return;
   if (loading.value) return;
-  deleteExec();
+  confirm.require({
+    message: "Are you sure you want to delete this workout?",
+    header: "Delete Workout",
+    icon: "pi pi-exclamation-triangle",
+    rejectProps: { label: "Cancel", severity: "secondary", outlined: true },
+    acceptProps: { label: "Delete", severity: "danger" },
+    accept: () => deleteExec(),
+  });
 }
 
 function onDragStart(event: DragEvent) {

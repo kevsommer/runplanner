@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import PrimeVue from 'primevue/config'
 import ToastService from 'primevue/toastservice'
+import ConfirmationService from 'primevue/confirmationservice'
 import Aura from '@primevue/themes/aura' // choose any theme you like
 import { polyfill } from 'mobile-drag-drop'
 import { scrollBehaviourDragImageTranslateOverride } from 'mobile-drag-drop/scroll-behaviour'
@@ -32,5 +33,6 @@ app.use(PrimeVue, {
 })
 
 app.use(ToastService)
+app.use(ConfirmationService)
 
 app.mount('#app')

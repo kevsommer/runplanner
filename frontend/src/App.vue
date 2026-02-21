@@ -1,6 +1,7 @@
 <template>
   <div class="min-h-screen surface-ground">
     <Toast />
+    <ConfirmDialog />
     <div class="menubar-wrapper">
       <Menubar :model="items">
         <template #start>
@@ -26,6 +27,7 @@
 <script setup lang="ts">
 import Menubar from "primevue/menubar";
 import Toast from "primevue/toast";
+import ConfirmDialog from "primevue/confirmdialog";
 import { computed } from "vue";
 import { RouterLink } from "vue-router";
 import { useAuth } from "./composables/useAuth";

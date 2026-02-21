@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import PrimeVue from "primevue/config";
-import { api } from "@/tests/mocks";
+import { api, confirm } from "@/tests/mocks";
 import WorkoutCard from "./WorkoutCard.vue";
 import type { Workout } from "./WorkoutCard.vue";
 
@@ -30,6 +30,58 @@ function mountCard(workout: Workout) {
 
 beforeEach(() => {
   api.put.mockReset();
+  api.delete.mockReset();
+  confirm.require.mockReset();
+});
+
+describe("WorkoutCard delete button", () => {
+  it("opens a confirm dialog when the delete button is clicked", async () => {
+    const wrapper = mountCard(makeWorkout());
+    await wrapper.find("[data-test='delete-button']").trigger("click");
+
+    expect(confirm.require).toHaveBeenCalledOnce();
+    expect(confirm.require).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Are you sure you want to delete this workout?",
+        header: "Delete Workout",
+      })
+    );
+  });
+
+  it("calls api.delete when confirm is accepted", async () => {
+    api.delete.mockResolvedValue({ data: {} });
+    const wrapper = mountCard(makeWorkout());
+
+    await wrapper.find("[data-test='delete-button']").trigger("click");
+    const { accept } = confirm.require.mock.calls[0][0];
+    accept();
+    await flushPromises();
+
+    expect(api.delete).toHaveBeenCalledWith("/workouts/w-1");
+  });
+
+  it("emits updated after successful deletion", async () => {
+    api.delete.mockResolvedValue({ data: {} });
+    const wrapper = mountCard(makeWorkout());
+
+    await wrapper.find("[data-test='delete-button']").trigger("click");
+    const { accept } = confirm.require.mock.calls[0][0];
+    accept();
+    await flushPromises();
+
+    expect(wrapper.emitted("updated")).toHaveLength(1);
+  });
+
+  it("does not call api.delete when confirm is rejected", async () => {
+    const wrapper = mountCard(makeWorkout());
+
+    await wrapper.find("[data-test='delete-button']").trigger("click");
+    const { reject } = confirm.require.mock.calls[0][0];
+    if (reject) reject();
+    await flushPromises();
+
+    expect(api.delete).not.toHaveBeenCalled();
+  });
 });
 
 describe("WorkoutCard skip button", () => {

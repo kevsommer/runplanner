@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mount } from "@vue/test-utils";
+import { mount, flushPromises } from "@vue/test-utils";
 import PrimeVue from "primevue/config";
-import { api, router } from "@/tests/mocks";
+import { api, confirm, router } from "@/tests/mocks";
 import TrainingPlanCard, { type Plan } from "./TrainingPlanCard.vue";
 
 function mountCard(plan: Plan, activePlanId?: string | null) {
@@ -25,6 +25,7 @@ beforeEach(() => {
   router.push.mockReset();
   api.delete.mockReset();
   api.post.mockReset();
+  confirm.require.mockReset();
 });
 
 afterEach(() => {
@@ -112,33 +113,44 @@ describe("TrainingPlanCard", () => {
     expect(progressBar.props("value")).toBe(0);
   });
 
+  it("opens a confirm dialog when delete button is clicked", async () => {
+    const wrapper = mountCard(basePlan);
+    await wrapper.find(".delete-btn").trigger("click");
+
+    expect(confirm.require).toHaveBeenCalledOnce();
+    expect(confirm.require).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Are you sure you want to delete this training plan?",
+        header: "Delete Training Plan",
+      })
+    );
+  });
+
   it("calls api.delete and emits deleted when confirmed", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     api.delete.mockResolvedValue({ data: { deleted: true } });
 
     const wrapper = mountCard(basePlan);
     await wrapper.find(".delete-btn").trigger("click");
-    await vi.dynamicImportSettled();
+    const { accept } = confirm.require.mock.calls[0][0];
+    accept();
+    await flushPromises();
 
-    expect(window.confirm).toHaveBeenCalledWith("Are you sure you want to delete this training plan?");
     expect(api.delete).toHaveBeenCalledWith("/plans/plan-1");
     expect(wrapper.emitted("deleted")).toBeTruthy();
   });
 
   it("does not call api.delete when confirm is cancelled", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
-
     const wrapper = mountCard(basePlan);
     await wrapper.find(".delete-btn").trigger("click");
+    const { reject } = confirm.require.mock.calls[0][0];
+    if (reject) reject();
+    await flushPromises();
 
-    expect(window.confirm).toHaveBeenCalled();
     expect(api.delete).not.toHaveBeenCalled();
     expect(wrapper.emitted("deleted")).toBeFalsy();
   });
 
   it("does not navigate when delete button is clicked", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
-
     const wrapper = mountCard(basePlan);
     await wrapper.find(".delete-btn").trigger("click");
     expect(router.push).not.toHaveBeenCalled();

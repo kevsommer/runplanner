@@ -23,7 +23,7 @@ beforeEach(() => {
 });
 
 describe("CreateTrainingPlanForm", () => {
-  it("redirects to plan page on successful creation", async () => {
+  it("redirects to plan page on successful creation (AI mode, default)", async () => {
     api.post.mockResolvedValue({ data: { plan: { id: "plan-42" } } });
     const wrapper = mountForm();
 
@@ -31,7 +31,7 @@ describe("CreateTrainingPlanForm", () => {
     await flushPromises();
 
     expect(api.post).toHaveBeenCalledWith(
-      "/plans/",
+      "/plans/generate",
       expect.objectContaining({ name: "", weeks: 10 }),
     );
     expect(router.push).toHaveBeenCalledWith({

@@ -35,6 +35,7 @@
           size="small"
           class="delete-btn"
           aria-label="Delete plan"
+          data-test="delete-button"
           @click.stop="deletePlan"
         />
       </div>
@@ -73,6 +74,7 @@ import { api } from "@/api";
 import { useApi } from "@/composables/useApi";
 import Badge from "primevue/badge";
 import Button from "primevue/button";
+import { useConfirm } from "primevue/useconfirm";
 import ProgressBar from "primevue/progressbar";
 import { computed } from "vue";
 import { useRouter } from "vue-router";
@@ -97,6 +99,7 @@ const emit = defineEmits<{
 }>();
 
 const router = useRouter();
+const confirm = useConfirm();
 
 const { exec: deleteExec, loading: deleteLoading } = useApi({
   exec: () => api.delete(`/plans/${props.plan.id}`),
@@ -104,9 +107,15 @@ const { exec: deleteExec, loading: deleteLoading } = useApi({
 });
 
 function deletePlan() {
-  if (!confirm("Are you sure you want to delete this training plan?")) return;
   if (deleteLoading.value) return;
-  deleteExec();
+  confirm.require({
+    message: "Are you sure you want to delete this training plan?",
+    header: "Delete Training Plan",
+    icon: "pi pi-exclamation-triangle",
+    rejectProps: { label: "Cancel", severity: "secondary", outlined: true },
+    acceptProps: { label: "Delete", severity: "danger" },
+    accept: () => deleteExec(),
+  });
 }
 
 const { exec: activateExec, loading: activateLoading } = useApi({

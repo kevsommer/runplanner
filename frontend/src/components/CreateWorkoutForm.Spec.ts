@@ -30,7 +30,7 @@ describe("CreateWorkoutForm", () => {
     await wrapper.find("form").trigger("submit");
     await flushPromises();
 
-    expect(api.post).toHaveBeenCalledWith("/workouts/", {
+    expect(api.post).toHaveBeenCalledWith("/workouts", {
       planId: "plan-1",
       runType: "easy_run",
       day: "2026-03-15",
@@ -51,7 +51,7 @@ describe("CreateWorkoutForm", () => {
     await flushPromises();
 
     expect(api.post).toHaveBeenCalledWith(
-      "/workouts/",
+      "/workouts",
       expect.objectContaining({ distance: 0 }),
     );
   });

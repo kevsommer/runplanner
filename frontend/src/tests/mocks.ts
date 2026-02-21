@@ -1,5 +1,14 @@
 import { vi } from "vitest";
 
+const confirmRequireMock = vi.fn();
+
+export const confirm = {
+  require: confirmRequireMock,
+};
+vi.mock("primevue/useconfirm", () => ({
+  useConfirm: () => ({ require: (...args: unknown[]) => confirmRequireMock(...args) }),
+}));
+
 const getMock = vi.fn();
 const postMock = vi.fn();
 const putMock = vi.fn();
