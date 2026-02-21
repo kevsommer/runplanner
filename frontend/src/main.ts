@@ -26,6 +26,9 @@ app.use(PrimeVue, {
   theme: {
     preset: Aura,
   },
+  locale: {
+    firstDayOfWeek: 1,
+  },
 })
 
 app.use(ToastService)

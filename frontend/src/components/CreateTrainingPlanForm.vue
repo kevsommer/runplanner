@@ -25,7 +25,7 @@
       <DatePicker
         id="endDate"
         v-model="form.endDate"
-        dateFormat="yy-mm-dd"
+        dateFormat="D d.m.yy"
         showIcon />
     </div>
 
@@ -115,7 +115,7 @@ import SelectButton from "primevue/selectbutton";
 import { useRouter } from "vue-router";
 import { api } from "@/api";
 import { useApi } from "@/composables/useApi";
-import { formatDateToYYYYMMDD, calcStartDate } from "@/utils";
+import { formatDateToYYYYMMDD, formatDateDisplay, calcStartDate } from "@/utils";
 
 const router = useRouter();
 
@@ -179,7 +179,7 @@ const loading = computed(() => manualLoading.value || generateLoading.value);
 const startDate = computed(() => {
   const { endDate, weeks } = form;
   if (!endDate || !weeks) return "";
-  return formatDateToYYYYMMDD(calcStartDate(endDate, weeks));
+  return formatDateDisplay(calcStartDate(endDate, weeks));
 });
 
 function onSubmit() {

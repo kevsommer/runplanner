@@ -1,3 +1,13 @@
+const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+export function formatDateDisplay(date: Date): string {
+  const day = SHORT_DAYS[date.getDay()];
+  const d = date.getDate();
+  const m = date.getMonth() + 1;
+  const y = date.getFullYear();
+  return `${day} ${d}.${m}.${y}`;
+}
+
 export function calcStartDate(endDate: Date, weeks: number): Date {
   const weekday = endDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
   const daysSinceMonday = weekday === 0 ? 6 : weekday - 1;
