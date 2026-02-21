@@ -12,6 +12,8 @@
         />
       </div>
 
+      <TodayWorkoutSection :plan="activePlan" />
+
       <div
         v-if="plans.length > 0"
         class="grid">
@@ -46,6 +48,7 @@
 <script setup lang="ts">
 import { api } from "@/api";
 import CreateTrainingPlanForm from "@/components/CreateTrainingPlanForm.vue";
+import TodayWorkoutSection from "@/components/TodayWorkoutSection.vue";
 import TrainingPlanCard from "@/components/TrainingPlanCard.vue";
 import type { Plan } from "@/components/TrainingPlanCard.vue";
 import { useApi } from "@/composables/useApi";
@@ -60,6 +63,7 @@ const activePlanId = computed(() => user.value?.user?.activePlanId ?? null);
 const formVisible = ref(false);
 
 const plans = ref<Plan[]>([]);
+const activePlan = computed(() => plans.value.find((p) => p.id === activePlanId.value) ?? null);
 
 const { exec: fetchTrainingPlans } = useApi({
   exec: () => api.get("/plans"),
