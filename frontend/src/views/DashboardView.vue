@@ -21,7 +21,9 @@
           class="col-12 md:col-6">
           <TrainingPlanCard
             :plan="plan"
-            @deleted="fetchTrainingPlans" />
+            :activePlanId="activePlanId"
+            @deleted="fetchTrainingPlans"
+            @activated="(id) => setActivePlanId(id)" />
         </div>
       </div>
       <p
@@ -47,9 +49,13 @@ import CreateTrainingPlanForm from "@/components/CreateTrainingPlanForm.vue";
 import TrainingPlanCard from "@/components/TrainingPlanCard.vue";
 import type { Plan } from "@/components/TrainingPlanCard.vue";
 import { useApi } from "@/composables/useApi";
+import { useAuth } from "@/composables/useAuth";
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
-import { ref } from "vue";
+import { computed, ref } from "vue";
+
+const { user, setActivePlanId } = useAuth();
+const activePlanId = computed(() => user.value?.user?.activePlanId ?? null);
 
 const formVisible = ref(false);
 

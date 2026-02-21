@@ -4,9 +4,9 @@ import PrimeVue from "primevue/config";
 import { api, router } from "@/tests/mocks";
 import TrainingPlanCard, { type Plan } from "./TrainingPlanCard.vue";
 
-function mountCard(plan: Plan) {
+function mountCard(plan: Plan, activePlanId?: string | null) {
   return mount(TrainingPlanCard, {
-    props: { plan },
+    props: { plan, activePlanId },
     global: {
       plugins: [PrimeVue],
     },
@@ -24,6 +24,7 @@ const basePlan: Plan = {
 beforeEach(() => {
   router.push.mockReset();
   api.delete.mockReset();
+  api.post.mockReset();
 });
 
 afterEach(() => {
@@ -140,6 +141,66 @@ describe("TrainingPlanCard", () => {
 
     const wrapper = mountCard(basePlan);
     await wrapper.find(".delete-btn").trigger("click");
+    expect(router.push).not.toHaveBeenCalled();
+  });
+});
+
+describe("TrainingPlanCard — active plan selection", () => {
+  it("shows 'Active' badge when activePlanId matches plan id", () => {
+    const wrapper = mountCard(basePlan, "plan-1");
+    expect(wrapper.text()).toContain("Active");
+  });
+
+  it("does not show 'Active' badge when activePlanId does not match", () => {
+    const wrapper = mountCard(basePlan, "other-plan");
+    expect(wrapper.text()).not.toContain("Active");
+  });
+
+  it("does not show 'Active' badge when activePlanId is null", () => {
+    const wrapper = mountCard(basePlan, null);
+    expect(wrapper.text()).not.toContain("Active");
+  });
+
+  it("activate button has 'Set as active plan' label when not active", () => {
+    const wrapper = mountCard(basePlan, null);
+    const btn = wrapper.find(".activate-btn");
+    expect(btn.attributes("aria-label")).toBe("Set as active plan");
+  });
+
+  it("activate button has 'Remove active plan' label when active", () => {
+    const wrapper = mountCard(basePlan, "plan-1");
+    const btn = wrapper.find(".activate-btn");
+    expect(btn.attributes("aria-label")).toBe("Remove active plan");
+  });
+
+  it("calls api.post and emits activated with plan id on activation", async () => {
+    api.post.mockResolvedValue({ data: { activePlanId: "plan-1" } });
+
+    const wrapper = mountCard(basePlan, null);
+    await wrapper.find(".activate-btn").trigger("click");
+    await vi.dynamicImportSettled();
+
+    expect(api.post).toHaveBeenCalledWith("/plans/plan-1/activate");
+    expect(wrapper.emitted("activated")).toBeTruthy();
+    expect(wrapper.emitted("activated")![0]).toEqual(["plan-1"]);
+  });
+
+  it("calls api.post and emits activated with null on deactivation", async () => {
+    api.post.mockResolvedValue({ data: { activePlanId: null } });
+
+    const wrapper = mountCard(basePlan, "plan-1");
+    await wrapper.find(".activate-btn").trigger("click");
+    await vi.dynamicImportSettled();
+
+    expect(api.post).toHaveBeenCalledWith("/plans/plan-1/activate");
+    expect(wrapper.emitted("activated")![0]).toEqual([null]);
+  });
+
+  it("does not navigate when activate button is clicked", async () => {
+    api.post.mockResolvedValue({ data: { activePlanId: "plan-1" } });
+
+    const wrapper = mountCard(basePlan, null);
+    await wrapper.find(".activate-btn").trigger("click");
     expect(router.push).not.toHaveBeenCalled();
   });
 });

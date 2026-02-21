@@ -90,7 +90,7 @@ func main() {
 	// API routes
 	api := r.Group("/api")
 	controller.RegisterAuthRoutes(api, authSvc)
-	controller.RegisterTrainingPlanRoutes(api, trainingPlanSvc, workoutSvc, generateSvc)
+	controller.RegisterTrainingPlanRoutes(api, trainingPlanSvc, workoutSvc, generateSvc, authSvc)
 	controller.RegisterWorkoutRoutes(api, workoutSvc, trainingPlanSvc)
 
 	log.Printf("listening on :%s", port)

@@ -4,12 +4,29 @@
     @click="router.push(`/plans/${plan.id}`)"
   >
     <div class="flex justify-content-between align-items-start mb-3">
-      <h3 class="text-xl font-bold m-0">{{ plan.name }}</h3>
+      <div class="flex align-items-center gap-2">
+        <h3 class="text-xl font-bold m-0">{{ plan.name }}</h3>
+        <Badge
+          v-if="isSelectedActive"
+          value="Active"
+          severity="success" />
+      </div>
       <div class="flex align-items-center gap-2">
         <Badge
-          v-if="isActive"
+          v-if="isCurrentlyRunning"
           :value="`Week ${currentWeek}`"
           severity="info" />
+        <Button
+          icon="pi pi-verified"
+          :severity="isSelectedActive ? 'warning' : 'secondary'"
+          text
+          rounded
+          size="small"
+          :loading="activateLoading"
+          :aria-label="isSelectedActive ? 'Remove active plan' : 'Set as active plan'"
+          class="activate-btn"
+          @click.stop="toggleActivate"
+        />
         <Button
           icon="pi pi-trash"
           severity="danger"
@@ -71,10 +88,12 @@ export type Plan = {
 
 const props = defineProps<{
   plan: Plan;
+  activePlanId?: string | null;
 }>();
 
 const emit = defineEmits<{
   (e: "deleted"): void;
+  (e: "activated", activePlanId: string | null): void;
 }>();
 
 const router = useRouter();
@@ -90,17 +109,29 @@ function deletePlan() {
   deleteExec();
 }
 
+const { exec: activateExec, loading: activateLoading } = useApi({
+  exec: () => api.post(`/plans/${props.plan.id}/activate`),
+  onSuccess: ({ data }) => emit("activated", data.activePlanId ?? null),
+});
+
+function toggleActivate() {
+  if (activateLoading.value) return;
+  activateExec();
+}
+
 const today = new Date();
 
 const startDate = computed(() => new Date(props.plan.startDate));
 const endDate = computed(() => new Date(props.plan.endDate));
 
-const isActive = computed(() => {
+const isSelectedActive = computed(() => props.activePlanId === props.plan.id);
+
+const isCurrentlyRunning = computed(() => {
   return today >= startDate.value && today <= endDate.value;
 });
 
 const currentWeek = computed(() => {
-  if (!isActive.value) return 0;
+  if (!isCurrentlyRunning.value) return 0;
   const msPerDay = 1000 * 60 * 60 * 24;
   const daysSinceStart = Math.floor((today.getTime() - startDate.value.getTime()) / msPerDay);
   return Math.floor(daysSinceStart / 7) + 1;

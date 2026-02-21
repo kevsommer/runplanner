@@ -16,6 +16,7 @@ type TrainingPlanController struct {
 	svc      *service.TrainingPlanService
 	workouts *service.WorkoutService
 	generate *service.GenerateService
+	auth     *service.AuthService
 }
 
 func requireAuth(c *gin.Context) {
@@ -26,8 +27,8 @@ func requireAuth(c *gin.Context) {
 	c.Next()
 }
 
-func RegisterTrainingPlanRoutes(rg *gin.RouterGroup, svc *service.TrainingPlanService, workouts *service.WorkoutService, generate *service.GenerateService) {
-	tc := &TrainingPlanController{svc: svc, workouts: workouts, generate: generate}
+func RegisterTrainingPlanRoutes(rg *gin.RouterGroup, svc *service.TrainingPlanService, workouts *service.WorkoutService, generate *service.GenerateService, auth *service.AuthService) {
+	tc := &TrainingPlanController{svc: svc, workouts: workouts, generate: generate, auth: auth}
 	plans := rg.Group("/plans")
 	plans.Use(requireAuth)
 	{
@@ -37,6 +38,7 @@ func RegisterTrainingPlanRoutes(rg *gin.RouterGroup, svc *service.TrainingPlanSe
 		plans.GET("/:id", tc.getByID)
 		plans.PUT("/:id", tc.putUpdate)
 		plans.DELETE("/:id", tc.deletePlan)
+		plans.POST("/:id/activate", tc.postActivate)
 	}
 }
 
@@ -199,6 +201,43 @@ type generatePlanInput struct {
 	BaseKmPerWeek float64 `json:"baseKmPerWeek" binding:"required"`
 	RunsPerWeek   int     `json:"runsPerWeek" binding:"required"`
 	RaceGoal      string  `json:"raceGoal" binding:"required"`
+}
+
+func (t *TrainingPlanController) postActivate(c *gin.Context) {
+	uid := model.UserID(currentUserID(c))
+	id := model.TrainingPlanID(c.Param("id"))
+
+	plan, err := t.svc.GetByID(id)
+	if err != nil {
+		if err == store.ErrNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "plan not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get plan"})
+		return
+	}
+	if plan.UserID != uid {
+		c.JSON(http.StatusNotFound, gin.H{"error": "plan not found"})
+		return
+	}
+
+	user, err := t.auth.GetUser(uid)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user"})
+		return
+	}
+
+	// Toggle: if this plan is already active, deactivate it; otherwise activate it.
+	var newActivePlanID *model.TrainingPlanID
+	if user.ActivePlanID == nil || *user.ActivePlanID != id {
+		newActivePlanID = &id
+	}
+
+	if err := t.auth.SetActivePlan(uid, newActivePlanID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update active plan"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"activePlanId": newActivePlanID})
 }
 
 func (t *TrainingPlanController) postGenerate(c *gin.Context) {

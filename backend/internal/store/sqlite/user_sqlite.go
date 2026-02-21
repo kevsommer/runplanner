@@ -50,30 +50,48 @@ func (s *UserStore) CreateUser(email string, hash []byte) (*model.User, error) {
 
 func (s *UserStore) GetUserByEmail(email string) (*model.User, error) {
 	row := s.db.QueryRow(
-		`SELECT id, email, password_hash, created_at FROM users WHERE email = ?`,
+		`SELECT id, email, password_hash, created_at, active_plan_id FROM users WHERE email = ?`,
 		email,
 	)
-	u := model.User{}
-	if err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt); err != nil {
+	return scanUser(row)
+}
+
+func (s *UserStore) GetUserByID(id model.UserID) (*model.User, error) {
+	row := s.db.QueryRow(
+		`SELECT id, email, password_hash, created_at, active_plan_id FROM users WHERE id = ?`,
+		id,
+	)
+	u, err := scanUser(row)
+	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
 		return nil, err
 	}
-	return &u, nil
+	return u, nil
 }
 
-func (s *UserStore) GetUserByID(id model.UserID) (*model.User, error) {
-	row := s.db.QueryRow(
-		`SELECT id, email, password_hash, created_at FROM users WHERE id = ?`,
-		id,
-	)
-	u := model.User{}
-	if err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt); err != nil {
+func (s *UserStore) SetActivePlan(userID model.UserID, planID *model.TrainingPlanID) error {
+	var val interface{}
+	if planID != nil {
+		val = string(*planID)
+	}
+	_, err := s.db.Exec(`UPDATE users SET active_plan_id = ? WHERE id = ?`, val, userID)
+	return err
+}
+
+func scanUser(row *sql.Row) (*model.User, error) {
+	var u model.User
+	var activePlanID sql.NullString
+	if err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt, &activePlanID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
 		return nil, err
+	}
+	if activePlanID.Valid {
+		id := model.TrainingPlanID(activePlanID.String)
+		u.ActivePlanID = &id
 	}
 	return &u, nil
 }

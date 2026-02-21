@@ -36,6 +36,12 @@ async function logout() {
 }
 
 
+function setActivePlanId(id: string | null) {
+  if (user.value?.user) {
+    user.value.user.activePlanId = id ?? undefined
+  }
+}
+
 export function useAuth() {
-  return { user, loading, error, isAuthed: computed(() => !!user.value), check, login, register, logout }
+  return { user, loading, error, isAuthed: computed(() => !!user.value), check, login, register, logout, setActivePlanId }
 }

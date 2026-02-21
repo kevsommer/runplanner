@@ -7,6 +7,7 @@ type UserStore interface {
 	CreateUser(email string, passwordHash []byte) (*model.User, error)
 	GetUserByEmail(email string) (*model.User, error)
 	GetUserByID(id model.UserID) (*model.User, error)
+	SetActivePlan(userID model.UserID, planID *model.TrainingPlanID) error
 }
 
 // Domain errors for portability.

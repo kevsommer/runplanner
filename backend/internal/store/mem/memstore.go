@@ -56,6 +56,17 @@ func (s *memUserStore) GetUserByID(id model.UserID) (*model.User, error) {
 	return u, nil
 }
 
+func (s *memUserStore) SetActivePlan(userID model.UserID, planID *model.TrainingPlanID) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	u, ok := s.byID[userID]
+	if !ok {
+		return store.ErrNotFound
+	}
+	u.ActivePlanID = planID
+	return nil
+}
+
 func newID() string {
 	b := make([]byte, 16)
 	_, _ = rand.Read(b)

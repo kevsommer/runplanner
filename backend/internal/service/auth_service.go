@@ -57,6 +57,10 @@ func (s *AuthService) GetUser(id model.UserID) (*model.User, error) {
 	return s.users.GetUserByID(id)
 }
 
+func (s *AuthService) SetActivePlan(userID model.UserID, planID *model.TrainingPlanID) error {
+	return s.users.SetActivePlan(userID, planID)
+}
+
 var emailRe = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 
 func isEmail(s string) bool { return emailRe.MatchString(s) }
