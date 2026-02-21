@@ -55,7 +55,7 @@
     </div>
     <p
       v-if="workout.description"
-      class="mt-1 mb-0 text-sm text-color-secondary"
+      class="p-2 mt-1 mb-0 text-sm text-color-secondary"
       style="white-space: pre-line"
     >
       {{ workout.description }}

@@ -40,7 +40,7 @@ func setupPlansTestRouter(t *testing.T) (*gin.Engine, *service.AuthService, *ser
 
 	api := r.Group("/api")
 	RegisterAuthRoutes(api, authSvc)
-	RegisterTrainingPlanRoutes(api, planSvc, workoutSvc, nil)
+	RegisterTrainingPlanRoutes(api, planSvc, workoutSvc, nil, nil)
 
 	return r, authSvc, planSvc, workoutSvc
 }
@@ -222,6 +222,50 @@ func TestTrainingPlanController_GetByID_WithWorkouts(t *testing.T) {
 		assert.Equal(t, float64(0), week2["plannedKm"])
 		assert.Equal(t, float64(0), week2["doneKm"])
 		assert.Equal(t, false, week2["allDone"])
+	})
+}
+
+func TestTrainingPlanController_AllDoneWhenCompletedAndSkipped(t *testing.T) {
+	r, authSvc, planSvc, workoutSvc := setupPlansTestRouter(t)
+	u, _ := authSvc.Register("alldone@example.com", "password123")
+	plan, _ := planSvc.Create(u.ID, "AllDone Plan", mustParseDate("2025-05-01"), 1)
+
+	// completed workout: 5 km
+	w1, _ := workoutSvc.Create(plan.ID, "easy_run", plan.StartDate, "Completed run", 5.0)
+	w1.Status = "completed"
+	_ = workoutSvc.Update(w1)
+	// skipped workout: 10 km — plannedKm (15) = doneKm (5) + skippedKm (10)
+	w2, _ := workoutSvc.Create(plan.ID, "long_run", plan.StartDate.AddDate(0, 0, 1), "Skipped run", 10.0)
+	w2.Status = "skipped"
+	_ = workoutSvc.Update(w2)
+
+	body := map[string]string{"email": "alldone@example.com", "password": "password123"}
+	bodyBytes, _ := json.Marshal(body)
+	loginReq := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(bodyBytes))
+	loginReq.Header.Set("Content-Type", "application/json")
+	lw := httptest.NewRecorder()
+	r.ServeHTTP(lw, loginReq)
+	cookies := lw.Result().Cookies()
+
+	t.Run("allDone is true when plannedKm equals doneKm plus skippedKm", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/plans/"+string(plan.ID), nil)
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		p := resp["plan"].(map[string]interface{})
+		weeksSummary := p["weeksSummary"].([]interface{})
+		assert.Len(t, weeksSummary, 1)
+
+		week1 := weeksSummary[0].(map[string]interface{})
+		assert.Equal(t, float64(15), week1["plannedKm"])
+		assert.Equal(t, float64(5), week1["doneKm"])
+		assert.Equal(t, true, week1["allDone"])
 	})
 }
 

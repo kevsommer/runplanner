@@ -171,7 +171,7 @@ func TestBuildPlanDetail(t *testing.T) {
 		week1 := detail.WeeksSummary[0]
 		assert.Equal(t, 5.0, week1.PlannedKm)
 		assert.Equal(t, 0.0, week1.DoneKm)
-		assert.False(t, week1.AllDone)
+		assert.True(t, week1.AllDone)
 	})
 }
 

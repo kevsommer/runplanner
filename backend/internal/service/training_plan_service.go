@@ -124,6 +124,8 @@ func BuildPlanDetail(plan *model.TrainingPlan, workouts []*model.Workout) *PlanD
 				if w.Status == "completed" {
 					doneKm += w.Distance
 					allCompleted++
+				} else if w.Status == "skipped" {
+					allCompleted++
 				}
 			}
 		}
