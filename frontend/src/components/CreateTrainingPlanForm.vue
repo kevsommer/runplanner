@@ -30,6 +30,11 @@
     </div>
 
     <div class="flex flex-column gap-2">
+      <label class="text-color-secondary text-sm">Start Date</label>
+      <span class="text-color-secondary">{{ startDate }}</span>
+    </div>
+
+    <div class="flex flex-column gap-2">
       <label for="weeks">Number of Weeks</label>
       <InputNumber
         id="weeks"
@@ -110,7 +115,7 @@ import SelectButton from "primevue/selectbutton";
 import { useRouter } from "vue-router";
 import { api } from "@/api";
 import { useApi } from "@/composables/useApi";
-import { formatDateToYYYYMMDD } from "@/utils";
+import { formatDateToYYYYMMDD, calcStartDate } from "@/utils";
 
 const router = useRouter();
 
@@ -170,6 +175,12 @@ const { exec: submitGenerate, loading: generateLoading } = useApi({
 });
 
 const loading = computed(() => manualLoading.value || generateLoading.value);
+
+const startDate = computed(() => {
+  const { endDate, weeks } = form;
+  if (!endDate || !weeks) return "";
+  return formatDateToYYYYMMDD(calcStartDate(endDate, weeks));
+});
 
 function onSubmit() {
   if (mode.value === "ai") {
