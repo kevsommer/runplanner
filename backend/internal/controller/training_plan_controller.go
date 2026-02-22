@@ -191,7 +191,16 @@ func (t *TrainingPlanController) getByUserID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"plans": plans})
+	summaries := make([]*service.PlanSummary, 0, len(plans))
+	for _, plan := range plans {
+		workouts, err := t.workouts.GetByPlanID(plan.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get workouts"})
+			return
+		}
+		summaries = append(summaries, service.BuildPlanSummary(plan, workouts))
+	}
+	c.JSON(http.StatusOK, gin.H{"plans": summaries})
 }
 
 type generatePlanInput struct {

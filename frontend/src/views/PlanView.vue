@@ -7,7 +7,7 @@
         <div>
           <h1 class="text-xl font-bold mb-1">{{ plan.name }}</h1>
           <span class="text-color-secondary text-sm">
-            {{ formatDate(plan.startDate) }} - {{ formatDate(plan.endDate) }} · {{ plan.weeks }} weeks
+            {{ formatDate(plan.startDate) }} - {{ formatDate(plan.endDate) }} · {{ plan.weeks }} weeks · {{ totalDoneKm.toFixed(0) }} / {{ totalPlannedKm.toFixed(0) }} km
           </span>
         </div>
         <Select
@@ -148,6 +148,16 @@ const weekOptions = computed(() => {
     label: `Week ${week.number}`,
     value: index,
   }));
+});
+
+const totalPlannedKm = computed(() => {
+  if (!plan.value) return 0;
+  return plan.value.weeksSummary.reduce((sum, w) => sum + w.plannedKm, 0);
+});
+
+const totalDoneKm = computed(() => {
+  if (!plan.value) return 0;
+  return plan.value.weeksSummary.reduce((sum, w) => sum + w.doneKm, 0);
 });
 
 const isFirstWeek = computed(() => selectedWeekIndex.value === 0);

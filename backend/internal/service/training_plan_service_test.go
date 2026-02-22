@@ -175,6 +175,63 @@ func TestBuildPlanDetail(t *testing.T) {
 	})
 }
 
+func TestBuildPlanSummary(t *testing.T) {
+	plan := &model.TrainingPlan{
+		ID:        "plan-1",
+		UserID:    "user-1",
+		Name:      "Test Plan",
+		StartDate: time.Date(2025, 3, 10, 0, 0, 0, 0, time.UTC),
+		EndDate:   time.Date(2025, 3, 23, 0, 0, 0, 0, time.UTC),
+		Weeks:     2,
+	}
+
+	t.Run("empty workouts gives zero km totals", func(t *testing.T) {
+		summary := BuildPlanSummary(plan, []*model.Workout{})
+		assert.Equal(t, 0.0, summary.TotalPlannedKm)
+		assert.Equal(t, 0.0, summary.TotalDoneKm)
+	})
+
+	t.Run("sums all workout distances as planned km", func(t *testing.T) {
+		workouts := []*model.Workout{
+			{ID: "w1", Distance: 5, Status: "pending"},
+			{ID: "w2", Distance: 10, Status: "pending"},
+		}
+		summary := BuildPlanSummary(plan, workouts)
+		assert.Equal(t, 15.0, summary.TotalPlannedKm)
+		assert.Equal(t, 0.0, summary.TotalDoneKm)
+	})
+
+	t.Run("only completed workouts count toward done km", func(t *testing.T) {
+		workouts := []*model.Workout{
+			{ID: "w1", Distance: 5, Status: "completed"},
+			{ID: "w2", Distance: 10, Status: "pending"},
+			{ID: "w3", Distance: 8, Status: "skipped"},
+		}
+		summary := BuildPlanSummary(plan, workouts)
+		assert.Equal(t, 23.0, summary.TotalPlannedKm)
+		assert.Equal(t, 5.0, summary.TotalDoneKm)
+	})
+
+	t.Run("skipped workouts count toward planned but not done km", func(t *testing.T) {
+		workouts := []*model.Workout{
+			{ID: "w1", Distance: 7, Status: "skipped"},
+		}
+		summary := BuildPlanSummary(plan, workouts)
+		assert.Equal(t, 7.0, summary.TotalPlannedKm)
+		assert.Equal(t, 0.0, summary.TotalDoneKm)
+	})
+
+	t.Run("copies plan metadata to summary", func(t *testing.T) {
+		summary := BuildPlanSummary(plan, []*model.Workout{})
+		assert.Equal(t, plan.ID, summary.ID)
+		assert.Equal(t, plan.UserID, summary.UserID)
+		assert.Equal(t, plan.Name, summary.Name)
+		assert.Equal(t, plan.Weeks, summary.Weeks)
+		assert.Equal(t, plan.StartDate, summary.StartDate)
+		assert.Equal(t, plan.EndDate, summary.EndDate)
+	})
+}
+
 func TestTrainingPlanService_Update(t *testing.T) {
 	svc := setupTrainingPlanTest(t)
 	userID := model.UserID("user-1")

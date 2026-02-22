@@ -19,6 +19,8 @@ const basePlan: Plan = {
   startDate: "2026-01-01",
   endDate: "2026-04-01",
   weeks: 13,
+  totalPlannedKm: 500,
+  totalDoneKm: 120,
 };
 
 beforeEach(() => {
@@ -47,6 +49,16 @@ describe("TrainingPlanCard", () => {
   it("renders weeks", () => {
     const wrapper = mountCard(basePlan);
     expect(wrapper.text()).toContain("13 weeks");
+  });
+
+  it("renders total done and planned km", () => {
+    const wrapper = mountCard(basePlan);
+    expect(wrapper.text()).toContain("120 / 500 km");
+  });
+
+  it("renders 0 done km when no workouts completed", () => {
+    const wrapper = mountCard({ ...basePlan, totalDoneKm: 0, totalPlannedKm: 300 });
+    expect(wrapper.text()).toContain("0 / 300 km");
   });
 
   it("navigates to plan on click", async () => {

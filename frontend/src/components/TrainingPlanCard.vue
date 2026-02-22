@@ -50,6 +50,10 @@
         <i class="pi pi-clock" />
         <span>{{ plan.weeks }} weeks</span>
       </div>
+      <div class="flex align-items-center gap-2">
+        <i class="pi pi-chart-line" />
+        <span>{{ plan.totalDoneKm.toFixed(0) }} / {{ plan.totalPlannedKm.toFixed(0) }} km</span>
+      </div>
       <div
         v-if="daysRemaining !== null"
         class="flex align-items-center gap-2">
@@ -86,6 +90,8 @@ export type Plan = {
   startDate: string;
   endDate: string;
   weeks: number;
+  totalPlannedKm: number;
+  totalDoneKm: number;
 };
 
 const props = defineProps<{

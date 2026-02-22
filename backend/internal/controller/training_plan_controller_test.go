@@ -480,3 +480,72 @@ func TestTrainingPlanController_GetByUserID(t *testing.T) {
 		assert.Contains(t, names, "My Plan2")
 	})
 }
+
+func TestTrainingPlanController_GetByUserID_WithKm(t *testing.T) {
+	r, authSvc, planSvc, workoutSvc := setupPlansTestRouter(t)
+	u, _ := authSvc.Register("km@example.com", "password123")
+	plan, _ := planSvc.Create(u.ID, "KM Plan", mustParseDate("2025-05-01"), 2)
+
+	// pending: 10 km — counts toward planned only
+	_, _ = workoutSvc.Create(plan.ID, "easy_run", plan.StartDate, "Easy run", 10.0)
+	// completed: 8 km — counts toward both planned and done
+	w2, _ := workoutSvc.Create(plan.ID, "tempo_run", plan.StartDate.AddDate(0, 0, 1), "Tempo run", 8.0)
+	w2.Status = "completed"
+	_ = workoutSvc.Update(w2)
+	// skipped: 5 km — counts toward planned only
+	w3, _ := workoutSvc.Create(plan.ID, "long_run", plan.StartDate.AddDate(0, 0, 2), "Long run", 5.0)
+	w3.Status = "skipped"
+	_ = workoutSvc.Update(w3)
+
+	body := map[string]string{"email": "km@example.com", "password": "password123"}
+	bodyBytes, _ := json.Marshal(body)
+	loginReq := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(bodyBytes))
+	loginReq.Header.Set("Content-Type", "application/json")
+	lw := httptest.NewRecorder()
+	r.ServeHTTP(lw, loginReq)
+	cookies := lw.Result().Cookies()
+
+	t.Run("returns totalPlannedKm and totalDoneKm for plan with workouts", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/plans", nil)
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		plans := resp["plans"].([]interface{})
+		require.Len(t, plans, 1)
+		p := plans[0].(map[string]interface{})
+		assert.Equal(t, float64(23), p["totalPlannedKm"])
+		assert.Equal(t, float64(8), p["totalDoneKm"])
+	})
+
+	t.Run("returns zero km for plan with no workouts", func(t *testing.T) {
+		emptyPlan, _ := planSvc.Create(u.ID, "Empty Plan", mustParseDate("2025-06-01"), 2)
+		_ = emptyPlan
+
+		req := httptest.NewRequest(http.MethodGet, "/api/plans", nil)
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		plans := resp["plans"].([]interface{})
+		require.Len(t, plans, 2)
+		// Find the empty plan
+		for _, plan := range plans {
+			p := plan.(map[string]interface{})
+			if p["name"] == "Empty Plan" {
+				assert.Equal(t, float64(0), p["totalPlannedKm"])
+				assert.Equal(t, float64(0), p["totalDoneKm"])
+			}
+		}
+	})
+}

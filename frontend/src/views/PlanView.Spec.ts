@@ -209,6 +209,22 @@ describe("PlanView", () => {
       expect(wrapper.text()).toContain("10 / 35 km");
     });
 
+    it("shows total done and planned km across all weeks in the header", async () => {
+      const { wrapper } = await mountWithPlan();
+      // totalDoneKm = 0 + 10 + 0 + 20 = 30, totalPlannedKm = 30 + 35 + 40 + 20 = 125
+      expect(wrapper.text()).toContain("30 / 125 km");
+    });
+
+    it("shows total km of 0 when plan has no workouts", async () => {
+      const { wrapper } = await mountWithPlan({
+        weeksSummary: [
+          { number: 1, plannedKm: 0, doneKm: 0, allDone: false, days: [] },
+        ],
+        weeks: 1,
+      });
+      expect(wrapper.text()).toContain("0 / 0 km");
+    });
+
     it("shows Current badge on current week", async () => {
       const { wrapper } = await mountWithPlan();
       expect(wrapper.text()).toContain("Current");

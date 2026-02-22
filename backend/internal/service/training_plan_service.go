@@ -86,6 +86,39 @@ type PlanDetail struct {
 	WeeksSummary []WeekSummary        `json:"weeksSummary"`
 }
 
+type PlanSummary struct {
+	ID             model.TrainingPlanID `json:"id"`
+	UserID         model.UserID         `json:"userId"`
+	Name           string               `json:"name"`
+	EndDate        time.Time            `json:"endDate"`
+	Weeks          int                  `json:"weeks"`
+	StartDate      time.Time            `json:"startDate"`
+	CreatedAt      time.Time            `json:"createdAt"`
+	TotalPlannedKm float64              `json:"totalPlannedKm"`
+	TotalDoneKm    float64              `json:"totalDoneKm"`
+}
+
+func BuildPlanSummary(plan *model.TrainingPlan, workouts []*model.Workout) *PlanSummary {
+	var totalPlannedKm, totalDoneKm float64
+	for _, w := range workouts {
+		totalPlannedKm += w.Distance
+		if w.Status == "completed" {
+			totalDoneKm += w.Distance
+		}
+	}
+	return &PlanSummary{
+		ID:             plan.ID,
+		UserID:         plan.UserID,
+		Name:           plan.Name,
+		EndDate:        plan.EndDate,
+		Weeks:          plan.Weeks,
+		StartDate:      plan.StartDate,
+		CreatedAt:      plan.CreatedAt,
+		TotalPlannedKm: totalPlannedKm,
+		TotalDoneKm:    totalDoneKm,
+	}
+}
+
 var dayNames = []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
 
 func BuildPlanDetail(plan *model.TrainingPlan, workouts []*model.Workout) *PlanDetail {
