@@ -38,6 +38,7 @@
         v-for="workout in todayWorkouts"
         :key="workout.id"
         :workout="workout"
+        :allow-drag="false"
         @updated="fetchWorkouts"
         @edit="router.push(`/plans/${plan.id}`)"
       />

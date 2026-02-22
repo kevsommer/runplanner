@@ -4,9 +4,9 @@
     :class="{
       'workout-done': workout.status === 'completed',
       'workout-skipped': workout.status === 'skipped',
-      'cursor-move': workout.status === 'pending',
+      'cursor-move': allowDrag && workout.status === 'pending',
     }"
-    :draggable="workout.status === 'pending'"
+    :draggable="allowDrag && workout.status === 'pending'"
     @dragstart="onDragStart"
   >
     <div class="flex justify-content-between align-items-center">
@@ -81,9 +81,10 @@ export type Workout = {
   distance: number;
 };
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   workout: Workout;
-}>();
+  allowDrag?: boolean;
+}>(), { allowDrag: true });
 
 const emit = defineEmits<{
   (e: "updated"): void;
