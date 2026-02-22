@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen surface-ground">
-    <Toast />
+    <Toast :position="toastPosition" />
     <ConfirmDialog />
     <div class="menubar-wrapper">
       <Menubar :model="items">
@@ -32,11 +32,18 @@
 import Menubar from "primevue/menubar";
 import Toast from "primevue/toast";
 import ConfirmDialog from "primevue/confirmdialog";
-import { computed } from "vue";
+import { computed, ref, onMounted, onUnmounted } from "vue";
 import { RouterLink } from "vue-router";
 import { useAuth } from "./composables/useAuth";
 
 const { isAuthed } = useAuth();
+
+const windowWidth = ref(window.innerWidth);
+const onResize = () => { windowWidth.value = window.innerWidth; };
+onMounted(() => window.addEventListener("resize", onResize));
+onUnmounted(() => window.removeEventListener("resize", onResize));
+
+const toastPosition = computed(() => windowWidth.value <= 768 ? "bottom-center" : "top-right");
 
 const items = computed(() =>
   isAuthed.value
@@ -136,5 +143,11 @@ body {
   margin: 0;
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@media (min-width: 769px) {
+  .p-toast-top-right {
+    top: 60px !important;
+  }
 }
 </style>
