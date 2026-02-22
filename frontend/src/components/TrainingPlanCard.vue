@@ -3,19 +3,11 @@
     class="surface-card border-round p-4 cursor-pointer training-plan-card"
     @click="router.push(`/plans/${plan.id}`)"
   >
-    <div class="flex justify-content-between align-items-start mb-3">
+    <div class="flex justify-content-between align-items-start">
       <div class="flex align-items-center gap-2">
         <h3 class="text-xl font-bold m-0">{{ plan.name }}</h3>
-        <Badge
-          v-if="isSelectedActive"
-          value="Active"
-          severity="success" />
       </div>
       <div class="flex align-items-center gap-2">
-        <Badge
-          v-if="isCurrentlyRunning"
-          :value="`Week ${currentWeek}`"
-          severity="info" />
         <Button
           icon="pi pi-verified"
           :severity="isSelectedActive ? 'warning' : 'secondary'"
@@ -39,6 +31,17 @@
           @click.stop="deletePlan"
         />
       </div>
+    </div>
+
+    <div class="flex align-items-center gap-2 mb-3">
+      <Badge
+        v-if="isSelectedActive"
+        value="Active"
+        severity="success" />
+      <Badge
+        v-if="isCurrentlyRunning"
+        :value="`Week ${currentWeek}`"
+        severity="info" />
     </div>
 
     <div class="flex flex-column gap-2 text-color-secondary text-sm mb-3">
