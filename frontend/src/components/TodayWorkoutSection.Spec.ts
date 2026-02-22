@@ -37,6 +37,8 @@ const basePlan: Plan = {
   startDate: "2026-01-01",
   endDate: "2026-04-01",
   weeks: 13,
+  totalDoneKm: 120,
+  totalPlannedKm: 500,
 };
 
 beforeEach(() => {
