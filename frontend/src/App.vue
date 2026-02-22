@@ -5,10 +5,14 @@
     <div class="menubar-wrapper">
       <Menubar :model="items">
         <template #start>
-          <span class="app-brand">
-            <i class="pi pi-directions-run" />
-            RunPlanner
-          </span>
+          <RouterLink
+            to="/"
+            class="menu-item">
+            <span class="app-brand">
+              <i class="pi pi-directions-run" />
+              RunPlanner
+            </span>
+          </RouterLink>
         </template>
         <template #item="{ label, item }">
           <RouterLink
@@ -66,6 +70,15 @@ const items = computed(() =>
   background: var(--p-primary-color);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   padding: 0.5rem 1rem;
+}
+
+.menubar-wrapper :deep(.p-menubar-button) {
+  color: #fff;
+}
+
+.menubar-wrapper :deep(.p-menubar-button:hover) {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .app-brand {

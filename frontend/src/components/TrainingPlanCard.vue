@@ -33,7 +33,9 @@
       </div>
     </div>
 
-    <div class="flex align-items-center gap-2 mb-3">
+    <div
+      class="flex align-items-center gap-2 mb-3"
+      style="min-height: 1.5rem">
       <Badge
         v-if="isSelectedActive"
         value="Active"
