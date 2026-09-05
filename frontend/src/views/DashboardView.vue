@@ -25,6 +25,7 @@
             :plan="plan"
             :activePlanId="activePlanId"
             @deleted="fetchTrainingPlans"
+            @renamed="fetchTrainingPlans"
             @activated="(id) => setActivePlanId(id)" />
         </div>
       </div>

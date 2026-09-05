@@ -20,6 +20,16 @@
           @click.stop="toggleActivate"
         />
         <Button
+          icon="pi pi-pencil"
+          severity="secondary"
+          text
+          rounded
+          size="small"
+          class="rename-btn"
+          aria-label="Rename plan"
+          @click.stop="openRename"
+        />
+        <Button
           icon="pi pi-trash"
           severity="danger"
           text
@@ -76,6 +86,35 @@
       style="height: 6px"
     />
   </div>
+
+  <Dialog
+    v-model:visible="renameVisible"
+    header="Rename Training Plan"
+    modal
+    class="w-full md:w-4">
+    <div class="flex flex-column gap-3">
+      <InputText
+        v-model="renameName"
+        autofocus
+        placeholder="Plan name"
+        class="rename-input"
+        @keyup.enter="submitRename"
+      />
+      <div class="flex justify-content-end gap-2">
+        <Button
+          label="Cancel"
+          severity="secondary"
+          outlined
+          @click="renameVisible = false" />
+        <Button
+          label="Save"
+          class="rename-save-btn"
+          :disabled="!isRenameValid"
+          :loading="renameLoading"
+          @click="submitRename" />
+      </div>
+    </div>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
@@ -83,9 +122,11 @@ import { api } from "@/api";
 import { useApi } from "@/composables/useApi";
 import Badge from "primevue/badge";
 import Button from "primevue/button";
+import Dialog from "primevue/dialog";
+import InputText from "primevue/inputtext";
 import { useConfirm } from "primevue/useconfirm";
 import ProgressBar from "primevue/progressbar";
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { formatDate } from "@/utils";
 
@@ -107,6 +148,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "deleted"): void;
   (e: "activated", activePlanId: string | null): void;
+  (e: "renamed", name: string): void;
 }>();
 
 const router = useRouter();
@@ -137,6 +179,29 @@ const { exec: activateExec, loading: activateLoading } = useApi({
 function toggleActivate() {
   if (activateLoading.value) return;
   activateExec();
+}
+
+const renameVisible = ref(false);
+const renameName = ref("");
+
+const isRenameValid = computed(() => renameName.value.trim().length > 0);
+
+const { exec: renameExec, loading: renameLoading } = useApi({
+  exec: () => api.patch(`/plans/${props.plan.id}`, { name: renameName.value.trim() }),
+  onSuccess: ({ data }) => {
+    renameVisible.value = false;
+    emit("renamed", data.plan.name);
+  },
+});
+
+function openRename() {
+  renameName.value = props.plan.name;
+  renameVisible.value = true;
+}
+
+function submitRename() {
+  if (!isRenameValid.value || renameLoading.value) return;
+  renameExec();
 }
 
 const today = new Date();

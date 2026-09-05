@@ -12,12 +12,14 @@ vi.mock("primevue/useconfirm", () => ({
 const getMock = vi.fn();
 const postMock = vi.fn();
 const putMock = vi.fn();
+const patchMock = vi.fn();
 const deleteMock = vi.fn();
 
 export const api = {
   get: getMock,
   post: postMock,
   put: putMock,
+  patch: patchMock,
   delete: deleteMock,
 }
 vi.mock("@/api", () => ({
@@ -25,6 +27,7 @@ vi.mock("@/api", () => ({
     get: (...args: unknown[]) => getMock(...args),
     post: (...args: unknown[]) => postMock(...args),
     put: (...args: unknown[]) => putMock(...args),
+    patch: (...args: unknown[]) => patchMock(...args),
     delete: (...args: unknown[]) => deleteMock(...args),
   },
 }));

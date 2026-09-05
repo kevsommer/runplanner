@@ -373,6 +373,79 @@ func TestTrainingPlanController_Update(t *testing.T) {
 	})
 }
 
+func TestTrainingPlanController_Patch(t *testing.T) {
+	r, authSvc, planSvc, _ := setupPlansTestRouter(t)
+	u, _ := authSvc.Register("patch@example.com", "password123")
+	plan, _ := planSvc.Create(u.ID, "Original Plan", mustParseDate("2025-06-15"), 8)
+
+	body := map[string]string{"email": "patch@example.com", "password": "password123"}
+	bodyBytes, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	cookies := w.Result().Cookies()
+
+	patch := func(t *testing.T, id string, body map[string]interface{}, withCookies bool) *httptest.ResponseRecorder {
+		t.Helper()
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPatch, "/api/plans/"+id, bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		if withCookies {
+			for _, c := range cookies {
+				req.AddCookie(c)
+			}
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		return w
+	}
+
+	t.Run("renames the plan without touching its dates", func(t *testing.T) {
+		w := patch(t, string(plan.ID), map[string]interface{}{"name": "Renamed Plan"}, true)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		p := resp["plan"].(map[string]interface{})
+		assert.Equal(t, "Renamed Plan", p["name"])
+		assert.Contains(t, p["endDate"], "2025-06-15")
+		assert.Equal(t, float64(8), p["weeks"])
+	})
+
+	t.Run("returns 404 for unknown plan", func(t *testing.T) {
+		w := patch(t, "nonexistent", map[string]interface{}{"name": "X"}, true)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("returns 404 for other user's plan", func(t *testing.T) {
+		other, _ := authSvc.Register("other-patch@example.com", "password123")
+		otherPlan, _ := planSvc.Create(other.ID, "Other Plan", mustParseDate("2025-06-15"), 8)
+
+		w := patch(t, string(otherPlan.ID), map[string]interface{}{"name": "Hacked"}, true)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+
+		unchanged, err := planSvc.GetByID(otherPlan.ID)
+		require.NoError(t, err)
+		assert.Equal(t, "Other Plan", unchanged.Name)
+	})
+
+	t.Run("returns 400 for missing name", func(t *testing.T) {
+		w := patch(t, string(plan.ID), map[string]interface{}{}, true)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("returns 400 for blank name", func(t *testing.T) {
+		w := patch(t, string(plan.ID), map[string]interface{}{"name": "   "}, true)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("unauthenticated returns 401", func(t *testing.T) {
+		w := patch(t, string(plan.ID), map[string]interface{}{"name": "Plan"}, false)
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+}
+
 func TestTrainingPlanController_Delete(t *testing.T) {
 	r, authSvc, planSvc, _ := setupPlansTestRouter(t)
 	u, _ := authSvc.Register("delete@example.com", "password123")

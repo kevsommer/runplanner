@@ -37,6 +37,7 @@ func RegisterTrainingPlanRoutes(rg *gin.RouterGroup, svc *service.TrainingPlanSe
 		plans.GET("", tc.getByUserID)
 		plans.GET("/:id", tc.getByID)
 		plans.PUT("/:id", tc.putUpdate)
+		plans.PATCH("/:id", tc.patchUpdate)
 		plans.DELETE("/:id", tc.deletePlan)
 		plans.POST("/:id/activate", tc.postActivate)
 	}
@@ -154,6 +155,48 @@ func (t *TrainingPlanController) putUpdate(c *gin.Context) {
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update plan"})
 		}
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"plan": updated})
+}
+
+type patchPlanInput struct {
+	Name *string `json:"name"`
+}
+
+// patchUpdate applies a partial update to a plan. Only the name can be changed
+// this way; use PUT to change the dates.
+func (t *TrainingPlanController) patchUpdate(c *gin.Context) {
+	uid := currentUserID(c)
+	id := model.TrainingPlanID(c.Param("id"))
+
+	plan, err := t.svc.GetByID(id)
+	if err != nil {
+		if err == store.ErrNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "plan not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get plan"})
+		return
+	}
+	if plan.UserID != model.UserID(uid) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "plan not found"})
+		return
+	}
+
+	var req patchPlanInput
+	if err := c.ShouldBindJSON(&req); err != nil || req.Name == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
+		return
+	}
+
+	updated, err := t.svc.Rename(id, *req.Name)
+	if err != nil {
+		if err == service.ErrInvalidName {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update plan"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"plan": updated})

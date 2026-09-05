@@ -9,6 +9,8 @@ function mountCard(plan: Plan, activePlanId?: string | null) {
     props: { plan, activePlanId },
     global: {
       plugins: [PrimeVue],
+      // The rename dialog teleports to <body>; keep it inside the wrapper.
+      stubs: { teleport: true },
     },
   });
 }
@@ -27,6 +29,7 @@ beforeEach(() => {
   router.push.mockReset();
   api.delete.mockReset();
   api.post.mockReset();
+  api.patch.mockReset();
   confirm.require.mockReset();
 });
 
@@ -226,5 +229,100 @@ describe("TrainingPlanCard — active plan selection", () => {
     const wrapper = mountCard(basePlan, null);
     await wrapper.find(".activate-btn").trigger("click");
     expect(router.push).not.toHaveBeenCalled();
+  });
+});
+
+describe("TrainingPlanCard — rename", () => {
+  function openRenameDialog(wrapper: ReturnType<typeof mountCard>) {
+    return wrapper.find(".rename-btn").trigger("click");
+  }
+
+  it("does not navigate when rename button is clicked", async () => {
+    const wrapper = mountCard(basePlan);
+    await openRenameDialog(wrapper);
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it("prefills the input with the current plan name", async () => {
+    const wrapper = mountCard(basePlan);
+    await openRenameDialog(wrapper);
+
+    const input = wrapper.findComponent({ name: "InputText" });
+    expect(input.props("modelValue")).toBe("Marathon Training");
+  });
+
+  it("patches the plan and emits renamed on save", async () => {
+    api.patch.mockResolvedValue({ data: { plan: { ...basePlan, name: "Berlin Marathon" } } });
+
+    const wrapper = mountCard(basePlan);
+    await openRenameDialog(wrapper);
+    await wrapper.findComponent({ name: "InputText" }).setValue("Berlin Marathon");
+    await wrapper.find(".rename-save-btn").trigger("click");
+    await flushPromises();
+
+    expect(api.patch).toHaveBeenCalledWith("/plans/plan-1", { name: "Berlin Marathon" });
+    expect(wrapper.emitted("renamed")).toBeTruthy();
+    expect(wrapper.emitted("renamed")![0]).toEqual(["Berlin Marathon"]);
+  });
+
+  it("trims whitespace from the new name", async () => {
+    api.patch.mockResolvedValue({ data: { plan: { ...basePlan, name: "Berlin Marathon" } } });
+
+    const wrapper = mountCard(basePlan);
+    await openRenameDialog(wrapper);
+    await wrapper.findComponent({ name: "InputText" }).setValue("  Berlin Marathon  ");
+    await wrapper.find(".rename-save-btn").trigger("click");
+    await flushPromises();
+
+    expect(api.patch).toHaveBeenCalledWith("/plans/plan-1", { name: "Berlin Marathon" });
+  });
+
+  it("disables save and does not patch for a blank name", async () => {
+    const wrapper = mountCard(basePlan);
+    await openRenameDialog(wrapper);
+    await wrapper.findComponent({ name: "InputText" }).setValue("   ");
+    await wrapper.find(".rename-save-btn").trigger("click");
+    await flushPromises();
+
+    expect(api.patch).not.toHaveBeenCalled();
+    expect(wrapper.emitted("renamed")).toBeFalsy();
+  });
+
+  it("saves on Enter in the input", async () => {
+    api.patch.mockResolvedValue({ data: { plan: { ...basePlan, name: "Berlin Marathon" } } });
+
+    const wrapper = mountCard(basePlan);
+    await openRenameDialog(wrapper);
+    const input = wrapper.findComponent({ name: "InputText" });
+    await input.setValue("Berlin Marathon");
+    await input.trigger("keyup.enter");
+    await flushPromises();
+
+    expect(api.patch).toHaveBeenCalledWith("/plans/plan-1", { name: "Berlin Marathon" });
+  });
+
+  it("closes the dialog after a successful rename", async () => {
+    api.patch.mockResolvedValue({ data: { plan: { ...basePlan, name: "Berlin Marathon" } } });
+
+    const wrapper = mountCard(basePlan);
+    await openRenameDialog(wrapper);
+    await wrapper.findComponent({ name: "InputText" }).setValue("Berlin Marathon");
+    await wrapper.find(".rename-save-btn").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.findComponent({ name: "InputText" }).exists()).toBe(false);
+  });
+
+  it("keeps the dialog open and emits nothing when the request fails", async () => {
+    api.patch.mockRejectedValue(new Error("boom"));
+
+    const wrapper = mountCard(basePlan);
+    await openRenameDialog(wrapper);
+    await wrapper.findComponent({ name: "InputText" }).setValue("Berlin Marathon");
+    await wrapper.find(".rename-save-btn").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.emitted("renamed")).toBeFalsy();
+    expect(wrapper.findComponent({ name: "InputText" }).exists()).toBe(true);
   });
 });

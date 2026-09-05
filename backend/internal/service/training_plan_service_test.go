@@ -276,6 +276,46 @@ func TestTrainingPlanService_Update(t *testing.T) {
 	})
 }
 
+func TestTrainingPlanService_Rename(t *testing.T) {
+	svc := setupTrainingPlanTest(t)
+	endDate := time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC)
+	created, err := svc.Create("user-1", "Original Plan", endDate, 8)
+	require.NoError(t, err)
+
+	t.Run("changes the name and leaves dates and weeks untouched", func(t *testing.T) {
+		renamed, err := svc.Rename(created.ID, "Renamed Plan")
+		require.NoError(t, err)
+		assert.Equal(t, "Renamed Plan", renamed.Name)
+		assert.Equal(t, created.EndDate, renamed.EndDate)
+		assert.Equal(t, created.StartDate, renamed.StartDate)
+		assert.Equal(t, created.Weeks, renamed.Weeks)
+	})
+
+	t.Run("persists the new name", func(t *testing.T) {
+		fetched, err := svc.GetByID(created.ID)
+		require.NoError(t, err)
+		assert.Equal(t, "Renamed Plan", fetched.Name)
+	})
+
+	t.Run("trims surrounding whitespace", func(t *testing.T) {
+		renamed, err := svc.Rename(created.ID, "  Padded Plan  ")
+		require.NoError(t, err)
+		assert.Equal(t, "Padded Plan", renamed.Name)
+	})
+
+	t.Run("blank name returns ErrInvalidName", func(t *testing.T) {
+		plan, err := svc.Rename(created.ID, "   ")
+		assert.Equal(t, ErrInvalidName, err)
+		assert.Nil(t, plan)
+	})
+
+	t.Run("unknown id returns ErrNotFound", func(t *testing.T) {
+		plan, err := svc.Rename("nonexistent", "Plan")
+		assert.Equal(t, store.ErrNotFound, err)
+		assert.Nil(t, plan)
+	})
+}
+
 func TestTrainingPlanService_Delete(t *testing.T) {
 	svc := setupTrainingPlanTest(t)
 	userID := model.UserID("user-1")

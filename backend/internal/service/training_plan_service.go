@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/kevsommer/runplanner/internal/model"
@@ -199,6 +200,23 @@ func (s *TrainingPlanService) Update(id model.TrainingPlanID, name string, endDa
 	plan.EndDate = endDate
 	plan.Weeks = weeks
 	plan.StartDate = StartDateFor(endDate, weeks)
+	if err := s.plans.Update(plan); err != nil {
+		return nil, err
+	}
+	return plan, nil
+}
+
+// Rename changes only the plan's name, leaving its dates and weeks untouched.
+func (s *TrainingPlanService) Rename(id model.TrainingPlanID, name string) (*model.TrainingPlan, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, ErrInvalidName
+	}
+	plan, err := s.plans.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	plan.Name = name
 	if err := s.plans.Update(plan); err != nil {
 		return nil, err
 	}
