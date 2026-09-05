@@ -40,7 +40,7 @@ func setupPlansTestRouter(t *testing.T) (*gin.Engine, *service.AuthService, *ser
 
 	api := r.Group("/api")
 	RegisterAuthRoutes(api, authSvc)
-	RegisterTrainingPlanRoutes(api, planSvc, workoutSvc, nil, nil)
+	RegisterTrainingPlanRoutes(api, planSvc, workoutSvc, nil, authSvc)
 
 	return r, authSvc, planSvc, workoutSvc
 }
@@ -620,5 +620,121 @@ func TestTrainingPlanController_GetByUserID_WithKm(t *testing.T) {
 				assert.Equal(t, float64(0), p["totalDoneKm"])
 			}
 		}
+	})
+}
+
+func archiveRequest(t *testing.T, r *gin.Engine, cookies []*http.Cookie, planID string, archived bool) *httptest.ResponseRecorder {
+	t.Helper()
+	bodyBytes, _ := json.Marshal(map[string]bool{"archived": archived})
+	req := httptest.NewRequest(http.MethodPost, "/api/plans/"+planID+"/archive", bytes.NewReader(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	return w
+}
+
+func TestTrainingPlanController_Archive(t *testing.T) {
+	r, authSvc, planSvc, _ := setupPlansTestRouter(t)
+	u, err := authSvc.Register("plans@example.com", "password123")
+	require.NoError(t, err)
+	cookies := loginAndGetCookies(t, r)
+	plan, _ := planSvc.Create(u.ID, "Past Marathon", mustParseDate("2025-05-01"), 8)
+
+	t.Run("archives a plan", func(t *testing.T) {
+		w := archiveRequest(t, r, cookies, string(plan.ID), true)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		body, ok := resp["plan"].(map[string]interface{})
+		require.True(t, ok)
+		assert.NotNil(t, body["archivedAt"])
+
+		stored, err := planSvc.GetByID(plan.ID)
+		require.NoError(t, err)
+		assert.NotNil(t, stored.ArchivedAt)
+	})
+
+	t.Run("unarchives a plan", func(t *testing.T) {
+		w := archiveRequest(t, r, cookies, string(plan.ID), false)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		body, ok := resp["plan"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Nil(t, body["archivedAt"])
+
+		stored, err := planSvc.GetByID(plan.ID)
+		require.NoError(t, err)
+		assert.Nil(t, stored.ArchivedAt)
+	})
+
+	t.Run("archiving the active plan clears it", func(t *testing.T) {
+		require.NoError(t, authSvc.SetActivePlan(u.ID, &plan.ID))
+
+		w := archiveRequest(t, r, cookies, string(plan.ID), true)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		assert.Nil(t, resp["activePlanId"])
+
+		user, err := authSvc.GetUser(u.ID)
+		require.NoError(t, err)
+		assert.Nil(t, user.ActivePlanID)
+	})
+
+	t.Run("activating an archived plan unarchives it", func(t *testing.T) {
+		stored, err := planSvc.GetByID(plan.ID)
+		require.NoError(t, err)
+		require.NotNil(t, stored.ArchivedAt, "plan is archived from the previous case")
+
+		req := httptest.NewRequest(http.MethodPost, "/api/plans/"+string(plan.ID)+"/activate", nil)
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		stored, err = planSvc.GetByID(plan.ID)
+		require.NoError(t, err)
+		assert.Nil(t, stored.ArchivedAt)
+	})
+
+	t.Run("rejects a body without archived", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/plans/"+string(plan.ID)+"/archive", bytes.NewReader([]byte(`{}`)))
+		req.Header.Set("Content-Type", "application/json")
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("returns 404 for another user's plan", func(t *testing.T) {
+		other, err := authSvc.Register("other@example.com", "password123")
+		require.NoError(t, err)
+		otherPlan, _ := planSvc.Create(other.ID, "Not Yours", mustParseDate("2025-05-01"), 8)
+
+		w := archiveRequest(t, r, cookies, string(otherPlan.ID), true)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("requires authentication", func(t *testing.T) {
+		bodyBytes, _ := json.Marshal(map[string]bool{"archived": true})
+		req := httptest.NewRequest(http.MethodPost, "/api/plans/"+string(plan.ID)+"/archive", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
 	})
 }

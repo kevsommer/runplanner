@@ -40,6 +40,7 @@ func RegisterTrainingPlanRoutes(rg *gin.RouterGroup, svc *service.TrainingPlanSe
 		plans.PATCH("/:id", tc.patchUpdate)
 		plans.DELETE("/:id", tc.deletePlan)
 		plans.POST("/:id/activate", tc.postActivate)
+		plans.POST("/:id/archive", tc.postArchive)
 	}
 }
 
@@ -283,6 +284,13 @@ func (t *TrainingPlanController) postActivate(c *gin.Context) {
 	var newActivePlanID *model.TrainingPlanID
 	if user.ActivePlanID == nil || *user.ActivePlanID != id {
 		newActivePlanID = &id
+		// Picking a plan back up takes it out of the archive.
+		if plan.ArchivedAt != nil {
+			if _, err := t.svc.SetArchived(id, false); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to unarchive plan"})
+				return
+			}
+		}
 	}
 
 	if err := t.auth.SetActivePlan(uid, newActivePlanID); err != nil {
@@ -290,6 +298,66 @@ func (t *TrainingPlanController) postActivate(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"activePlanId": newActivePlanID})
+}
+
+type archivePlanInput struct {
+	Archived *bool `json:"archived" binding:"required"`
+}
+
+func (t *TrainingPlanController) postArchive(c *gin.Context) {
+	uid := model.UserID(currentUserID(c))
+	id := model.TrainingPlanID(c.Param("id"))
+
+	plan, err := t.svc.GetByID(id)
+	if err != nil {
+		if err == store.ErrNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "plan not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get plan"})
+		return
+	}
+	if plan.UserID != uid {
+		c.JSON(http.StatusNotFound, gin.H{"error": "plan not found"})
+		return
+	}
+
+	var req archivePlanInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "archived is required"})
+		return
+	}
+
+	updated, err := t.svc.SetArchived(id, *req.Archived)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to archive plan"})
+		return
+	}
+
+	// An archived plan should not stay the user's active plan.
+	activePlanID, err := t.clearActivePlanIfArchived(uid, updated)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update active plan"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"plan": updated, "activePlanId": activePlanID})
+}
+
+// clearActivePlanIfArchived drops the user's active plan when that plan has just
+// been archived, and reports the active plan id the user is left with.
+func (t *TrainingPlanController) clearActivePlanIfArchived(uid model.UserID, plan *model.TrainingPlan) (*model.TrainingPlanID, error) {
+	user, err := t.auth.GetUser(uid)
+	if err != nil {
+		return nil, err
+	}
+	if plan.ArchivedAt == nil || user.ActivePlanID == nil || *user.ActivePlanID != plan.ID {
+		return user.ActivePlanID, nil
+	}
+	if err := t.auth.SetActivePlan(uid, nil); err != nil {
+		return nil, err
+	}
+	return nil, nil
 }
 
 func (t *TrainingPlanController) postGenerate(c *gin.Context) {

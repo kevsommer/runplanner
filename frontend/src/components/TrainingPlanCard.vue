@@ -1,6 +1,7 @@
 <template>
   <div
     class="surface-card border-round p-4 cursor-pointer training-plan-card"
+    :class="{ 'training-plan-card--archived': isArchived }"
     @click="router.push(`/plans/${plan.id}`)"
   >
     <div class="flex justify-content-between align-items-start">
@@ -9,6 +10,7 @@
       </div>
       <div class="flex align-items-center gap-2">
         <Button
+          v-if="!isArchived"
           icon="pi pi-verified"
           :severity="isSelectedActive ? 'warning' : 'secondary'"
           text
@@ -18,6 +20,19 @@
           :aria-label="isSelectedActive ? 'Remove active plan' : 'Set as active plan'"
           class="activate-btn"
           @click.stop="toggleActivate"
+        />
+        <Button
+          :icon="isArchived ? 'pi pi-replay' : 'pi pi-inbox'"
+          :severity="suggestsArchiving ? 'warning' : 'secondary'"
+          text
+          rounded
+          size="small"
+          :loading="archiveLoading"
+          :aria-label="isArchived ? 'Unarchive plan' : 'Archive plan'"
+          :title="archiveHint"
+          class="archive-btn"
+          data-test="archive-button"
+          @click.stop="toggleArchive"
         />
         <Button
           icon="pi pi-pencil"
@@ -47,6 +62,10 @@
       class="flex align-items-center gap-2 mb-3"
       style="min-height: 1.5rem">
       <Badge
+        v-if="isArchived"
+        value="Archived"
+        severity="secondary" />
+      <Badge
         v-if="isSelectedActive"
         value="Active"
         severity="success" />
@@ -54,6 +73,10 @@
         v-if="isCurrentlyRunning"
         :value="`Week ${currentWeek}`"
         severity="info" />
+      <Badge
+        v-if="suggestsArchiving"
+        value="Finished"
+        severity="contrast" />
     </div>
 
     <div class="flex flex-column gap-2 text-color-secondary text-sm mb-3">
@@ -138,6 +161,7 @@ export type Plan = {
   weeks: number;
   totalPlannedKm: number;
   totalDoneKm: number;
+  archivedAt?: string | null;
 };
 
 const props = defineProps<{
@@ -149,6 +173,7 @@ const emit = defineEmits<{
   (e: "deleted"): void;
   (e: "activated", activePlanId: string | null): void;
   (e: "renamed", name: string): void;
+  (e: "archived", activePlanId: string | null): void;
 }>();
 
 const router = useRouter();
@@ -211,6 +236,27 @@ const endDate = computed(() => new Date(props.plan.endDate));
 
 const isSelectedActive = computed(() => props.activePlanId === props.plan.id);
 
+const isArchived = computed(() => !!props.plan.archivedAt);
+
+// Nudge towards archiving once race day has passed, but never hide anything by itself.
+const suggestsArchiving = computed(() => !isArchived.value && endDate.value < today);
+
+const archiveHint = computed(() => {
+  if (isArchived.value) return "Unarchive plan";
+  if (suggestsArchiving.value) return "Race day has passed \u2014 archive this plan?";
+  return "Archive plan";
+});
+
+const { exec: archiveExec, loading: archiveLoading } = useApi({
+  exec: () => api.post(`/plans/${props.plan.id}/archive`, { archived: !isArchived.value }),
+  onSuccess: ({ data }) => emit("archived", data.activePlanId ?? null),
+});
+
+function toggleArchive() {
+  if (archiveLoading.value) return;
+  archiveExec();
+}
+
 const isCurrentlyRunning = computed(() => {
   return today >= startDate.value && today <= endDate.value;
 });
@@ -246,5 +292,13 @@ const progressPercent = computed(() => {
 .training-plan-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.training-plan-card--archived {
+  opacity: 0.65;
+}
+
+.training-plan-card--archived:hover {
+  opacity: 1;
 }
 </style>

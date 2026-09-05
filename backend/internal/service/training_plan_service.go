@@ -84,6 +84,7 @@ type PlanDetail struct {
 	Weeks        int                  `json:"weeks"`
 	StartDate    time.Time            `json:"startDate"`
 	CreatedAt    time.Time            `json:"createdAt"`
+	ArchivedAt   *time.Time           `json:"archivedAt"`
 	WeeksSummary []WeekSummary        `json:"weeksSummary"`
 }
 
@@ -95,6 +96,7 @@ type PlanSummary struct {
 	Weeks          int                  `json:"weeks"`
 	StartDate      time.Time            `json:"startDate"`
 	CreatedAt      time.Time            `json:"createdAt"`
+	ArchivedAt     *time.Time           `json:"archivedAt"`
 	TotalPlannedKm float64              `json:"totalPlannedKm"`
 	TotalDoneKm    float64              `json:"totalDoneKm"`
 }
@@ -115,6 +117,7 @@ func BuildPlanSummary(plan *model.TrainingPlan, workouts []*model.Workout) *Plan
 		Weeks:          plan.Weeks,
 		StartDate:      plan.StartDate,
 		CreatedAt:      plan.CreatedAt,
+		ArchivedAt:     plan.ArchivedAt,
 		TotalPlannedKm: totalPlannedKm,
 		TotalDoneKm:    totalDoneKm,
 	}
@@ -181,6 +184,7 @@ func BuildPlanDetail(plan *model.TrainingPlan, workouts []*model.Workout) *PlanD
 		Weeks:        plan.Weeks,
 		StartDate:    plan.StartDate,
 		CreatedAt:    plan.CreatedAt,
+		ArchivedAt:   plan.ArchivedAt,
 		WeeksSummary: weeksSummary,
 	}
 }
@@ -217,6 +221,28 @@ func (s *TrainingPlanService) Rename(id model.TrainingPlanID, name string) (*mod
 		return nil, err
 	}
 	plan.Name = name
+	if err := s.plans.Update(plan); err != nil {
+		return nil, err
+	}
+	return plan, nil
+}
+
+// SetArchived archives or unarchives a plan. Archiving an already archived plan
+// (or unarchiving an active one) is a no-op that returns the plan unchanged.
+func (s *TrainingPlanService) SetArchived(id model.TrainingPlanID, archived bool) (*model.TrainingPlan, error) {
+	plan, err := s.plans.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if archived == (plan.ArchivedAt != nil) {
+		return plan, nil
+	}
+	if archived {
+		now := time.Now().UTC()
+		plan.ArchivedAt = &now
+	} else {
+		plan.ArchivedAt = nil
+	}
 	if err := s.plans.Update(plan); err != nil {
 		return nil, err
 	}

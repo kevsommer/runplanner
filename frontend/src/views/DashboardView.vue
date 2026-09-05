@@ -15,10 +15,10 @@
       <TodayWorkoutSection :plan="activePlan" />
 
       <div
-        v-if="plans.length > 0"
+        v-if="currentPlans.length > 0"
         class="grid">
         <div
-          v-for="plan in plans"
+          v-for="plan in currentPlans"
           :key="plan.id"
           class="col-12 md:col-6">
           <TrainingPlanCard
@@ -26,14 +26,47 @@
             :activePlanId="activePlanId"
             @deleted="fetchTrainingPlans"
             @renamed="fetchTrainingPlans"
+            @archived="onArchived"
             @activated="(id) => setActivePlanId(id)" />
         </div>
       </div>
       <p
         v-else
         class="text-color-secondary text-center mt-5">
-        No training plans yet. Create one to get started!
+        {{
+          archivedPlans.length > 0
+            ? "No current plans. Your archived plans are below."
+            : "No training plans yet. Create one to get started!"
+        }}
       </p>
+
+      <Panel
+        v-if="archivedPlans.length > 0"
+        toggleable
+        collapsed
+        class="mt-4 archived-panel"
+        data-test="archived-panel">
+        <template #header>
+          <span class="flex align-items-center gap-2 text-color-secondary">
+            <i class="pi pi-inbox" />
+            <span>Archived ({{ archivedPlans.length }})</span>
+          </span>
+        </template>
+        <div class="grid">
+          <div
+            v-for="plan in archivedPlans"
+            :key="plan.id"
+            class="col-12 md:col-6">
+            <TrainingPlanCard
+              :plan="plan"
+              :activePlanId="activePlanId"
+              @deleted="fetchTrainingPlans"
+              @renamed="fetchTrainingPlans"
+              @archived="onArchived"
+              @activated="(id) => setActivePlanId(id)" />
+          </div>
+        </div>
+      </Panel>
 
       <Dialog
         v-model:visible="formVisible"
@@ -56,6 +89,7 @@ import { useApi } from "@/composables/useApi";
 import { useAuth } from "@/composables/useAuth";
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
+import Panel from "primevue/panel";
 import { computed, ref } from "vue";
 
 const { user, setActivePlanId } = useAuth();
@@ -66,12 +100,21 @@ const formVisible = ref(false);
 const plans = ref<Plan[]>([]);
 const activePlan = computed(() => plans.value.find((p) => p.id === activePlanId.value) ?? null);
 
+const currentPlans = computed(() => plans.value.filter((p) => !p.archivedAt));
+const archivedPlans = computed(() => plans.value.filter((p) => !!p.archivedAt));
+
 const { exec: fetchTrainingPlans } = useApi({
   exec: () => api.get("/plans"),
   onSuccess: ({ data }) => {
     plans.value = data.plans || [];
   },
 });
+
+// Archiving a plan can also drop it as the active plan, so take the server's word for both.
+function onArchived(newActivePlanId: string | null) {
+  setActivePlanId(newActivePlanId);
+  fetchTrainingPlans();
+}
 
 fetchTrainingPlans();
 </script>

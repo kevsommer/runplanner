@@ -52,7 +52,7 @@ func setupGenerateTestRouter(t *testing.T, mock ai.Client) (*gin.Engine, *servic
 
 	api := r.Group("/api")
 	RegisterAuthRoutes(api, authSvc)
-	RegisterTrainingPlanRoutes(api, planSvc, workoutSvc, genSvc, nil)
+	RegisterTrainingPlanRoutes(api, planSvc, workoutSvc, genSvc, authSvc)
 
 	return r, authSvc
 }

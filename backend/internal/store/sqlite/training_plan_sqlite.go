@@ -19,25 +19,31 @@ func NewTrainingPlanStore(db *sql.DB) *TrainingPlanStore {
 
 const dateFormat = "2006-01-02"
 
+const trainingPlanColumns = `id, user_id, name, end_date, weeks, start_date, created_at, archived_at`
+
 func (s *TrainingPlanStore) Create(plan *model.TrainingPlan) error {
 	_, err := s.db.Exec(
-		`INSERT INTO training_plans (id, user_id, name, end_date, weeks, start_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		plan.ID, plan.UserID, plan.Name, plan.EndDate.Format(dateFormat), plan.Weeks, plan.StartDate.Format(dateFormat), plan.CreatedAt,
+		`INSERT INTO training_plans (`+trainingPlanColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		plan.ID, plan.UserID, plan.Name, plan.EndDate.Format(dateFormat), plan.Weeks, plan.StartDate.Format(dateFormat), plan.CreatedAt, nullTime(plan.ArchivedAt),
 	)
 	return err
 }
 
 func (s *TrainingPlanStore) GetByID(id model.TrainingPlanID) (*model.TrainingPlan, error) {
 	row := s.db.QueryRow(
-		`SELECT id, user_id, name, end_date, weeks, start_date, created_at FROM training_plans WHERE id = ?`,
+		`SELECT `+trainingPlanColumns+` FROM training_plans WHERE id = ?`,
 		id,
 	)
-	return scanTrainingPlan(row)
+	plan, err := scanTrainingPlan(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, store.ErrNotFound
+	}
+	return plan, err
 }
 
 func (s *TrainingPlanStore) GetByUserID(userID model.UserID) ([]*model.TrainingPlan, error) {
 	rows, err := s.db.Query(
-		`SELECT id, user_id, name, end_date, weeks, start_date, created_at FROM training_plans WHERE user_id = ? ORDER BY end_date ASC`,
+		`SELECT `+trainingPlanColumns+` FROM training_plans WHERE user_id = ? ORDER BY end_date ASC`,
 		userID,
 	)
 	if err != nil {
@@ -46,7 +52,7 @@ func (s *TrainingPlanStore) GetByUserID(userID model.UserID) ([]*model.TrainingP
 	defer rows.Close()
 	var plans []*model.TrainingPlan
 	for rows.Next() {
-		plan, err := scanTrainingPlanFromRows(rows)
+		plan, err := scanTrainingPlan(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -55,19 +61,22 @@ func (s *TrainingPlanStore) GetByUserID(userID model.UserID) ([]*model.TrainingP
 	return plans, rows.Err()
 }
 
-func scanTrainingPlan(row *sql.Row) (*model.TrainingPlan, error) {
+// rowScanner is satisfied by both *sql.Row and *sql.Rows.
+type rowScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanTrainingPlan(row rowScanner) (*model.TrainingPlan, error) {
 	var id, uid, name, endDateStr, startDateStr string
 	var weeks int
 	var createdAt time.Time
-	if err := row.Scan(&id, &uid, &name, &endDateStr, &weeks, &startDateStr, &createdAt); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, store.ErrNotFound
-		}
+	var archivedAt sql.NullTime
+	if err := row.Scan(&id, &uid, &name, &endDateStr, &weeks, &startDateStr, &createdAt, &archivedAt); err != nil {
 		return nil, err
 	}
 	endDate, _ := time.Parse(dateFormat, endDateStr)
 	startDate, _ := time.Parse(dateFormat, startDateStr)
-	return &model.TrainingPlan{
+	plan := &model.TrainingPlan{
 		ID:        model.TrainingPlanID(id),
 		UserID:    model.UserID(uid),
 		Name:      name,
@@ -75,13 +84,25 @@ func scanTrainingPlan(row *sql.Row) (*model.TrainingPlan, error) {
 		Weeks:     weeks,
 		StartDate: startDate,
 		CreatedAt: createdAt,
-	}, nil
+	}
+	if archivedAt.Valid {
+		t := archivedAt.Time
+		plan.ArchivedAt = &t
+	}
+	return plan, nil
+}
+
+func nullTime(t *time.Time) sql.NullTime {
+	if t == nil {
+		return sql.NullTime{}
+	}
+	return sql.NullTime{Time: *t, Valid: true}
 }
 
 func (s *TrainingPlanStore) Update(plan *model.TrainingPlan) error {
 	res, err := s.db.Exec(
-		`UPDATE training_plans SET name = ?, end_date = ?, weeks = ?, start_date = ? WHERE id = ?`,
-		plan.Name, plan.EndDate.Format(dateFormat), plan.Weeks, plan.StartDate.Format(dateFormat), plan.ID,
+		`UPDATE training_plans SET name = ?, end_date = ?, weeks = ?, start_date = ?, archived_at = ? WHERE id = ?`,
+		plan.Name, plan.EndDate.Format(dateFormat), plan.Weeks, plan.StartDate.Format(dateFormat), nullTime(plan.ArchivedAt), plan.ID,
 	)
 	if err != nil {
 		return err
@@ -109,24 +130,4 @@ func (s *TrainingPlanStore) Delete(id model.TrainingPlanID) error {
 		return store.ErrNotFound
 	}
 	return nil
-}
-
-func scanTrainingPlanFromRows(rows *sql.Rows) (*model.TrainingPlan, error) {
-	var id, uid, name, endDateStr, startDateStr string
-	var weeks int
-	var createdAt time.Time
-	if err := rows.Scan(&id, &uid, &name, &endDateStr, &weeks, &startDateStr, &createdAt); err != nil {
-		return nil, err
-	}
-	endDate, _ := time.Parse(dateFormat, endDateStr)
-	startDate, _ := time.Parse(dateFormat, startDateStr)
-	return &model.TrainingPlan{
-		ID:        model.TrainingPlanID(id),
-		UserID:    model.UserID(uid),
-		Name:      name,
-		EndDate:   endDate,
-		Weeks:     weeks,
-		StartDate: startDate,
-		CreatedAt: createdAt,
-	}, nil
 }

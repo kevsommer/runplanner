@@ -351,7 +351,8 @@ func setupSQLiteTestDB(t *testing.T) (*TrainingPlanService, store.WorkoutStore) 
 		id TEXT PRIMARY KEY,
 		user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 		name TEXT NOT NULL, end_date TEXT NOT NULL, weeks INTEGER NOT NULL,
-		start_date TEXT NOT NULL, created_at TIMESTAMP NOT NULL)`)
+		start_date TEXT NOT NULL, created_at TIMESTAMP NOT NULL,
+		archived_at TIMESTAMP)`)
 	require.NoError(t, err)
 	_, err = db.Exec(`CREATE TABLE workouts (
 		id TEXT PRIMARY KEY,
@@ -408,4 +409,78 @@ func TestTrainingPlanService_GetByUserID(t *testing.T) {
 		assert.Equal(t, created1.ID, plan[0].ID)
 		assert.Equal(t, created2.ID, plan[1].ID)
 	})
+}
+
+func TestTrainingPlanService_SetArchived(t *testing.T) {
+	svc := setupTrainingPlanTest(t)
+	plan, err := svc.Create("user-archive", "Archive Me", time.Date(2025, 5, 1, 0, 0, 0, 0, time.UTC), 8)
+	require.NoError(t, err)
+	assert.Nil(t, plan.ArchivedAt, "new plans are not archived")
+
+	t.Run("archives the plan", func(t *testing.T) {
+		archived, err := svc.SetArchived(plan.ID, true)
+		require.NoError(t, err)
+		require.NotNil(t, archived.ArchivedAt)
+
+		stored, err := svc.GetByID(plan.ID)
+		require.NoError(t, err)
+		require.NotNil(t, stored.ArchivedAt)
+	})
+
+	t.Run("archiving twice keeps the original timestamp", func(t *testing.T) {
+		first, err := svc.GetByID(plan.ID)
+		require.NoError(t, err)
+		require.NotNil(t, first.ArchivedAt)
+		at := *first.ArchivedAt
+
+		again, err := svc.SetArchived(plan.ID, true)
+		require.NoError(t, err)
+		require.NotNil(t, again.ArchivedAt)
+		assert.Equal(t, at, *again.ArchivedAt)
+	})
+
+	t.Run("unarchives the plan", func(t *testing.T) {
+		unarchived, err := svc.SetArchived(plan.ID, false)
+		require.NoError(t, err)
+		assert.Nil(t, unarchived.ArchivedAt)
+
+		stored, err := svc.GetByID(plan.ID)
+		require.NoError(t, err)
+		assert.Nil(t, stored.ArchivedAt)
+	})
+
+	t.Run("returns not found for unknown plan", func(t *testing.T) {
+		_, err := svc.SetArchived("does-not-exist", true)
+		assert.ErrorIs(t, err, store.ErrNotFound)
+	})
+}
+
+func TestTrainingPlanService_SetArchivedRoundTripsThroughSQLite(t *testing.T) {
+	planSvc, _ := setupSQLiteTestDB(t)
+
+	plan, err := planSvc.Create("user-1", "Archive Me", time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC), 8)
+	require.NoError(t, err)
+
+	stored, err := planSvc.GetByID(plan.ID)
+	require.NoError(t, err)
+	assert.Nil(t, stored.ArchivedAt, "a new plan reads back unarchived")
+
+	_, err = planSvc.SetArchived(plan.ID, true)
+	require.NoError(t, err)
+
+	stored, err = planSvc.GetByID(plan.ID)
+	require.NoError(t, err)
+	require.NotNil(t, stored.ArchivedAt, "archived_at reads back after archiving")
+
+	plans, err := planSvc.GetByUserID("user-1")
+	require.NoError(t, err)
+	require.Len(t, plans, 1)
+	assert.NotNil(t, plans[0].ArchivedAt, "archived_at survives the list query too")
+
+	_, err = planSvc.SetArchived(plan.ID, false)
+	require.NoError(t, err)
+
+	stored, err = planSvc.GetByID(plan.ID)
+	require.NoError(t, err)
+	assert.Nil(t, stored.ArchivedAt, "archived_at clears again on unarchive")
 }

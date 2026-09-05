@@ -326,3 +326,83 @@ describe("TrainingPlanCard — rename", () => {
     expect(wrapper.findComponent({ name: "InputText" }).exists()).toBe(true);
   });
 });
+
+describe("TrainingPlanCard — archive", () => {
+  const archivedPlan: Plan = { ...basePlan, archivedAt: "2026-04-05T10:00:00Z" };
+
+  it("archive button is labelled 'Archive plan' for an unarchived plan", () => {
+    const wrapper = mountCard(basePlan);
+    expect(wrapper.find(".archive-btn").attributes("aria-label")).toBe("Archive plan");
+  });
+
+  it("archive button is labelled 'Unarchive plan' for an archived plan", () => {
+    const wrapper = mountCard(archivedPlan);
+    expect(wrapper.find(".archive-btn").attributes("aria-label")).toBe("Unarchive plan");
+  });
+
+  it("archives the plan and emits archived with the new active plan id", async () => {
+    api.post.mockResolvedValue({ data: { plan: {}, activePlanId: null } });
+
+    const wrapper = mountCard(basePlan, "plan-1");
+    await wrapper.find(".archive-btn").trigger("click");
+    await vi.dynamicImportSettled();
+
+    expect(api.post).toHaveBeenCalledWith("/plans/plan-1/archive", { archived: true });
+    expect(wrapper.emitted("archived")![0]).toEqual([null]);
+  });
+
+  it("unarchives an archived plan", async () => {
+    api.post.mockResolvedValue({ data: { plan: {}, activePlanId: "plan-9" } });
+
+    const wrapper = mountCard(archivedPlan);
+    await wrapper.find(".archive-btn").trigger("click");
+    await vi.dynamicImportSettled();
+
+    expect(api.post).toHaveBeenCalledWith("/plans/plan-1/archive", { archived: false });
+    expect(wrapper.emitted("archived")![0]).toEqual(["plan-9"]);
+  });
+
+  it("does not navigate when archive button is clicked", async () => {
+    api.post.mockResolvedValue({ data: { plan: {}, activePlanId: null } });
+
+    const wrapper = mountCard(basePlan);
+    await wrapper.find(".archive-btn").trigger("click");
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it("shows the Archived badge only for an archived plan", () => {
+    expect(mountCard(archivedPlan).text()).toContain("Archived");
+    expect(mountCard(basePlan).text()).not.toContain("Archived");
+  });
+
+  it("hides the activate button for an archived plan", () => {
+    expect(mountCard(archivedPlan).find(".activate-btn").exists()).toBe(false);
+    expect(mountCard(basePlan).find(".activate-btn").exists()).toBe(true);
+  });
+
+  it("suggests archiving once race day has passed", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-01"));
+
+    const wrapper = mountCard(basePlan);
+    expect(wrapper.text()).toContain("Finished");
+    expect(wrapper.find(".archive-btn").attributes("title")).toContain("Race day has passed");
+  });
+
+  it("does not suggest archiving while the plan is still running", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-15"));
+
+    const wrapper = mountCard(basePlan);
+    expect(wrapper.text()).not.toContain("Finished");
+    expect(wrapper.find(".archive-btn").attributes("title")).toBe("Archive plan");
+  });
+
+  it("does not suggest archiving a plan that is already archived", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-01"));
+
+    const wrapper = mountCard(archivedPlan);
+    expect(wrapper.text()).not.toContain("Finished");
+  });
+});
