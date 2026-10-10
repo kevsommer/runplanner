@@ -20,6 +20,10 @@ var runTypes = []string{"easy_run", "intervals", "long_run", "tempo_run", "stren
 
 var raceGoals = []string{"5k", "10k", "halfmarathon", "marathon"}
 
+// statuses are the workout statuses the backend accepts (see
+// service.WorkoutService.Update).
+var statuses = []string{"pending", "completed", "skipped"}
+
 func registerTools(s *mcp.Server, c *apiClient) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "list_training_plans",
@@ -54,6 +58,14 @@ func registerTools(s *mcp.Server, c *apiClient) {
 		Title:       "Create a single workout on a date",
 		Description: "Add a single workout to a training plan on a specific calendar date. Prefer create_workouts when adding several workouts or when positioning them by training week.",
 	}, createWorkout(c))
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:  "update_workout",
+		Title: "Edit a workout",
+		Description: "Edit an existing workout: change its run type, date, description, distance, notes or status (pending, completed, skipped). " +
+			"Only the fields you pass are changed. Workout ids come from get_training_plan.",
+		Annotations: &mcp.ToolAnnotations{IdempotentHint: true},
+	}, updateWorkout(c))
 }
 
 type listPlansInput struct {
@@ -387,4 +399,131 @@ func toolError(err error) *mcp.CallToolResult {
 		IsError: true,
 		Content: []mcp.Content{&mcp.TextContent{Text: err.Error()}},
 	}
+}
+
+type updateWorkoutInput struct {
+	WorkoutID   string   `json:"workoutId" jsonschema:"id of the workout to edit, as shown by get_training_plan"`
+	RunType     *string  `json:"runType,omitempty" jsonschema:"new run type - one of easy_run, intervals, long_run, tempo_run, strength_training"`
+	Day         *string  `json:"day,omitempty" jsonschema:"move the workout to this calendar date, as YYYY-MM-DD; must stay inside the plan"`
+	Description *string  `json:"description,omitempty" jsonschema:"new description of the session; pass an empty string to clear it"`
+	Notes       *string  `json:"notes,omitempty" jsonschema:"new notes on how the session went; pass an empty string to clear them"`
+	Status      *string  `json:"status,omitempty" jsonschema:"new status - one of pending, completed, skipped"`
+	Distance    *float64 `json:"distance,omitempty" jsonschema:"new distance in kilometers; must be 0 for strength_training"`
+}
+
+func updateWorkout(c *apiClient) mcp.ToolHandlerFor[updateWorkoutInput, any] {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, in updateWorkoutInput) (*mcp.CallToolResult, any, error) {
+		if in.WorkoutID == "" {
+			return toolError(fmt.Errorf("workoutId is required; get_training_plan lists the id of every workout")), nil, nil
+		}
+		if in.RunType == nil && in.Day == nil && in.Description == nil && in.Notes == nil && in.Status == nil && in.Distance == nil {
+			return toolError(fmt.Errorf("pass at least one field to change")), nil, nil
+		}
+		if in.Status != nil && !contains(statuses, *in.Status) {
+			return toolError(fmt.Errorf("status %q is not valid, must be one of %s", *in.Status, strings.Join(statuses, ", "))), nil, nil
+		}
+
+		before, err := c.getWorkout(ctx, in.WorkoutID)
+		if err != nil {
+			return toolError(err), nil, nil
+		}
+
+		// Validate the workout as it will be once the changes are applied: a
+		// distance-only edit still has to agree with the run type it keeps.
+		// The run type itself is only checked when it is being set, since a
+		// race workout legitimately carries a type create_workout never offers.
+		runType, distance := before.RunType, before.Distance
+		if in.RunType != nil {
+			runType = *in.RunType
+		}
+		if in.Distance != nil {
+			distance = *in.Distance
+		}
+		if in.RunType != nil && !contains(runTypes, runType) {
+			return toolError(fmt.Errorf("runType %q is not valid, must be one of %s", runType, strings.Join(runTypes, ", "))), nil, nil
+		}
+		if in.RunType != nil || in.Distance != nil {
+			if distance < 0 {
+				return toolError(fmt.Errorf("distance cannot be negative")), nil, nil
+			}
+			if runType == "strength_training" && distance != 0 {
+				return toolError(fmt.Errorf("strength_training must have a distance of 0")), nil, nil
+			}
+		}
+
+		if in.Day != nil {
+			day, err := time.Parse(dateLayout, *in.Day)
+			if err != nil {
+				return toolError(fmt.Errorf("day must be a date of the form YYYY-MM-DD")), nil, nil
+			}
+			plan, err := c.getPlan(ctx, string(before.PlanID))
+			if err != nil {
+				return toolError(err), nil, nil
+			}
+			// As in create_workout: the API stores an out-of-range date that
+			// the plan view would then never show.
+			lastDay := plan.StartDate.AddDate(0, 0, plan.Weeks*7-1)
+			if day.Before(plan.StartDate) || day.After(lastDay) {
+				return toolError(fmt.Errorf("day %s falls outside plan %q, which runs %s to %s",
+					*in.Day, plan.Name, plan.StartDate.Format(dateLayout), lastDay.Format(dateLayout))), nil, nil
+			}
+		}
+
+		var resp struct {
+			Workout *model.Workout `json:"workout"`
+		}
+		if err := c.do(ctx, "PUT", "/api/workouts/"+url.PathEscape(in.WorkoutID), in, &resp); err != nil {
+			return toolError(err), nil, nil
+		}
+
+		return textResult(formatWorkoutUpdate(before, resp.Workout)), nil, nil
+	}
+}
+
+// formatWorkoutUpdate reports only the fields that actually changed, so the
+// model can see at a glance whether the edit did what it asked for.
+func formatWorkoutUpdate(before, after *model.Workout) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "Updated workout %s in plan %s.\n", after.ID, after.PlanID)
+
+	changes := []struct{ field, from, to string }{
+		{"runType", before.RunType, after.RunType},
+		{"day", before.Day.Format(dateLayout), after.Day.Format(dateLayout)},
+		{"distance", fmt.Sprintf("%.1f km", before.Distance), fmt.Sprintf("%.1f km", after.Distance)},
+		{"status", before.Status, after.Status},
+		{"description", before.Description, after.Description},
+		{"notes", before.Notes, after.Notes},
+	}
+	changed := false
+	for _, ch := range changes {
+		if ch.from == ch.to {
+			continue
+		}
+		changed = true
+		fmt.Fprintf(&b, "- %s: %s -> %s\n", ch.field, quoteIfEmpty(ch.from), quoteIfEmpty(ch.to))
+	}
+	if !changed {
+		b.WriteString("No field changed; the workout already had these values.\n")
+	}
+	return strings.TrimRight(b.String(), "\n")
+}
+
+func quoteIfEmpty(v string) string {
+	if v == "" {
+		return `""`
+	}
+	return v
+}
+
+func (c *apiClient) getWorkout(ctx context.Context, workoutID string) (*model.Workout, error) {
+	var resp struct {
+		Workout *model.Workout `json:"workout"`
+	}
+	if err := c.do(ctx, "GET", "/api/workouts/"+url.PathEscape(workoutID), nil, &resp); err != nil {
+		return nil, err
+	}
+	if resp.Workout == nil {
+		return nil, fmt.Errorf("workout %s not found", workoutID)
+	}
+	return resp.Workout, nil
 }
