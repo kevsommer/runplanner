@@ -90,6 +90,7 @@ signs in as one user, so start the backend first.
 | `create_training_plan` | Create an empty plan (optionally with the race-day workout) |
 | `create_workouts` | Add workouts in bulk, positioned by week and day of week |
 | `create_workout` | Add a single workout on a calendar date |
+| `update_workout` | Edit a workout: run type, date, description, distance, notes or status |
 
 Tools that take a `planId` fall back to the user's active plan when it is omitted.
 
