@@ -79,6 +79,7 @@ func main() {
 	storeCookie := cookie.NewStore([]byte(sessionSecret))
 	storeCookie.Options(sessions.Options{
 		Path:     "/",
+		MaxAge:   30 * 24 * 60 * 60, // 30 days; without it the cookie is dropped when the browser closes
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
